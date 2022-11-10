@@ -26,6 +26,10 @@ defmodule ZohoCrm.Request do
     %{r | method: method}
   end
 
+  def set_base_url(%__MODULE__{} = r, base_url) do
+    %{r | base_url: base_url}
+  end
+
   def with_path(%__MODULE__{} = r, path) do
     %{r | path: path}
   end
