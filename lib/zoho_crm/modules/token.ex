@@ -12,9 +12,11 @@ defmodule ZohoCrm.Modules.Token do
       grant_type: "refresh_token"
     }
 
-    Request.new()
+    Request.new("oauth")
     |> Request.set_base_url("https://accounts.zoho.in")
-    |> Request.with_path("")
+    |> Request.with_path("token")
     |> Request.with_method(:post)
+    |> Request.with_params(params)
+    |> Request.send()
   end
 end
