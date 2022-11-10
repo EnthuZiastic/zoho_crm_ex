@@ -2,9 +2,10 @@ defmodule ZohoCrm.Request do
   @moduledoc """
   handle HTTP request to Zoho CRM
   """
-  @base_url "https://www.zohoapis.in/crm"
+  @base_url "https://www.zohoapis.in"
   @version "v3"
 
+  @enforce_keys [:api_type]
   @default_headers [
     {"content-type", "application/json"}
   ]
@@ -14,12 +15,13 @@ defmodule ZohoCrm.Request do
     :headers,
     :body,
     :params,
+    :api_type,
     base_url: @base_url,
     version: @version
   ]
 
-  def new do
-    %__MODULE__{}
+  def new(api_type \\ "crm") do
+    %__MODULE__{api_type: api_type}
   end
 
   def with_method(%__MODULE__{} = r, method) do
@@ -49,6 +51,7 @@ defmodule ZohoCrm.Request do
   end
 
   def construct_url(%__MODULE__{} = r) do
-    "#{r.base_url}/#{r.version}/#{r.path}?#{r.params}"
+    encoded_params = URI.encode_query(r.params)
+    "#{r.base_url}/#{r.api_type}/#{r.version}/#{r.path}?#{encoded_params}"
   end
 end
