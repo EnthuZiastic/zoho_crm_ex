@@ -5,12 +5,18 @@ defmodule ZohoCrm.Request do
   @base_url "https://www.zohoapis.in/crm"
   @version "v3"
 
-  alias ZohoCrm.Config, as: ZohoConfig
-
   @default_headers [
     {"content-type", "application/json"}
   ]
-  defstruct [:path, :method, :headers, :params, :body, base_url: @base_url, version: @version]
+  defstruct [
+    :path,
+    :method,
+    :headers,
+    :body,
+    :params,
+    base_url: @base_url,
+    version: @version
+  ]
 
   def new do
     %__MODULE__{}
