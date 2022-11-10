@@ -3,11 +3,12 @@ defmodule ZohoCrm.Config do
   Configuration for Zoho CRm
   """
 
-  defstruct [:client_id, :client_secret]
+  defstruct [:client_id, :client_secret, :refresh_token]
 
   @type t() :: %__MODULE__{
           client_id: String.t(),
-          client_secret: String.t()
+          client_secret: String.t(),
+          refresh_token: String.t()
         }
 
   @doc """
