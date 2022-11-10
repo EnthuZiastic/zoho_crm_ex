@@ -32,6 +32,12 @@ defmodule ZohoCrm.Request do
     %{r | params: params}
   end
 
+  def send(%__MODULE__{} = r) do
+    url = construct_url(r)
+    body = if is_map(r.body), do: Jason.encode!(r.body), else: r.body
+    HTTPoison.request(r.method, url, body, r.headers)
+  end
+
   def construct_url(%__MODULE__{} = r) do
     "#{r.base_url}/#{r.version}/#{r.path}?#{r.params}"
   end
