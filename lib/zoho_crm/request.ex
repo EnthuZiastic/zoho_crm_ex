@@ -7,21 +7,25 @@ defmodule ZohoCrm.Request do
 
   @enforce_keys [:api_type]
   @default_headers [
-    {"content-type", "application/json"}
+    {"Content-Type", "application/json"}
   ]
   defstruct [
     :path,
     :method,
-    :headers,
-    :body,
     :params,
     :api_type,
+    body: %{},
+    headers: @default_headers,
     base_url: @base_url,
     version: @version
   ]
 
   def new(api_type \\ "crm") do
     %__MODULE__{api_type: api_type}
+  end
+
+  def with_version(%__MODULE__{} = r, version) do
+    %{r | version: version}
   end
 
   def with_method(%__MODULE__{} = r, method) do
@@ -47,8 +51,32 @@ defmodule ZohoCrm.Request do
   def send(%__MODULE__{} = r) do
     url = construct_url(r)
     body = if is_map(r.body), do: Jason.encode!(r.body), else: r.body
+
     HTTPoison.request(r.method, url, body, r.headers)
+    |> handle_response()
   end
+
+  defp handle_response({:ok, %HTTPoison.Response{body: body, status_code: status_code}})
+       when status_code in [200, 201, 202, 203, 204, 205, 206] do
+    {:ok, json_or_value(body)}
+  end
+
+  defp handle_response({:ok, %HTTPoison.Response{body: body}}) do
+    {:error, json_or_value(body)}
+  end
+
+  defp handle_response({:error, %HTTPoison.Error{reason: reason}}) do
+    {:error, json_or_value(reason)}
+  end
+
+  defp json_or_value(data) when is_binary(data) do
+    case Jason.decode(data) do
+      {:ok, parsed_value} -> parsed_value
+      _ -> data
+    end
+  end
+
+  defp json_or_value(data), do: data
 
   def construct_url(%__MODULE__{} = r) do
     encoded_params = URI.encode_query(r.params)
