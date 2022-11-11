@@ -1,4 +1,7 @@
 defmodule ZohoCrm.Modules.Token do
+  @moduledoc """
+  This modules handle access token generation
+  """
   alias ZohoCrm.Request
   alias ZohoCrm.Config
 
@@ -14,6 +17,7 @@ defmodule ZohoCrm.Modules.Token do
 
     Request.new("oauth")
     |> Request.set_base_url("https://accounts.zoho.in")
+    |> Request.with_version("v2")
     |> Request.with_path("token")
     |> Request.with_method(:post)
     |> Request.with_params(params)
