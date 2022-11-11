@@ -36,6 +36,11 @@ defmodule ZohoCrm.Request do
     %{r | base_url: base_url}
   end
 
+  def set_headers(%__MODULE__{} = r, access_token) do
+    headers = prepare_default_headers(access_token)
+    %{r | headers: headers}
+  end
+
   def with_path(%__MODULE__{} = r, path) do
     %{r | path: path}
   end
@@ -54,6 +59,13 @@ defmodule ZohoCrm.Request do
 
     HTTPoison.request(r.method, url, body, r.headers)
     |> handle_response()
+  end
+
+  defp prepare_default_headers(access_token) do
+    %{
+      "Content-Type" => "Application/json",
+      "Authorization" => "Zoho-oauthtoken #{access_token}"
+    }
   end
 
   defp handle_response({:ok, %HTTPoison.Response{body: body, status_code: status_code}})
