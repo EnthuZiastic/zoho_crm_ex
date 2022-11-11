@@ -26,6 +26,16 @@ defmodule ZohoCrm.Modules.Records do
     |> Request.send()
   end
 
+  def update_records(%InputRequest{} = r) do
+    Request.new()
+    |> Request.with_method(:put)
+    |> Request.with_path("#{r.module_api_name}")
+    |> Request.set_headers(r.access_token)
+    |> Request.with_params(r.query_params)
+    |> Request.with_body(%{"data" => r.body})
+    |> Request.send()
+  end
+
   def search_records(%InputRequest{} = r) do
     Request.new()
     |> Request.with_method(:get)
