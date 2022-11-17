@@ -45,4 +45,14 @@ defmodule ZohoCrm.Modules.Records do
     |> Request.with_body(%{"data" => r.body})
     |> Request.send()
   end
+
+  def delete_record(%InputRequest{} = r) do
+    Request.new()
+    |> Request.with_method(:delete)
+    |> Request.with_path("#{r.module_api_name}")
+    |> Request.set_headers(r.access_token)
+    |> Request.with_params(r.query_params)
+    |> Request.with_body(%{"data" => r.body})
+    |> Request.send()
+  end
 end
