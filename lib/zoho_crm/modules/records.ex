@@ -46,7 +46,7 @@ defmodule ZohoCrm.Modules.Records do
     |> Request.send()
   end
 
-  def delete_record(%InputRequest{} = r) do
+  def delete_records(%InputRequest{} = r) do
     Request.new()
     |> Request.with_method(:delete)
     |> Request.with_path("#{r.module_api_name}")
