@@ -22,6 +22,7 @@ defmodule ZohoCrm.Modules.Projects do
     |> Request.set_base_url(@project_base)
     |> Request.with_path(path)
     |> Request.with_method(:get)
+    |> Request.with_params(r.query_params)
     |> Request.set_headers(r.access_token)
     |> Request.send()
   end
@@ -35,6 +36,7 @@ defmodule ZohoCrm.Modules.Projects do
     |> Request.set_base_url(@project_base)
     |> Request.with_path(path)
     |> Request.with_method(:get)
+    |> Request.with_params(r.query_params)
     |> Request.set_headers(r.access_token)
     |> Request.send()
   end
@@ -48,6 +50,23 @@ defmodule ZohoCrm.Modules.Projects do
     |> Request.set_base_url(@project_base)
     |> Request.with_path(path)
     |> Request.with_method(:post)
+    |> Request.with_body(r.body)
+    |> Request.with_params(r.query_params)
+    |> Request.set_headers(r.access_token)
+    |> Request.send()
+  end
+
+  @spec list_comments(ZohoCrm.InputRequest.t(), portal_id(), project_id(), task_id()) ::
+          {:error, any} | {:ok, any}
+  def list_comments(%InputRequest{} = r, portal_id, project_id, task_id) do
+    path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments"
+
+    Request.new(@api_type)
+    |> Request.set_base_url(@project_base)
+    |> Request.with_path(path)
+    |> Request.with_method(:get)
+    |> Request.with_body(r.body)
+    |> Request.with_params(r.query_params)
     |> Request.set_headers(r.access_token)
     |> Request.send()
   end
