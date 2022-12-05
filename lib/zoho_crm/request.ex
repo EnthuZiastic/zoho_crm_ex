@@ -12,8 +12,8 @@ defmodule ZohoCrm.Request do
   defstruct [
     :path,
     :method,
-    :params,
     :api_type,
+    params: %{},
     body: %{},
     headers: @default_headers,
     base_url: @base_url,
@@ -22,6 +22,10 @@ defmodule ZohoCrm.Request do
 
   def new(api_type \\ "crm") do
     %__MODULE__{api_type: api_type}
+  end
+
+  def set_api_type(%__MODULE__{} = r, api_type) do
+    %{r | api_type: api_type}
   end
 
   def with_version(%__MODULE__{} = r, version) do
@@ -90,8 +94,13 @@ defmodule ZohoCrm.Request do
 
   defp json_or_value(data), do: data
 
-  def construct_url(%__MODULE__{} = r) do
+  def construct_url(%__MODULE__{api_type: "crm"} = r) do
     encoded_params = URI.encode_query(r.params)
     "#{r.base_url}/#{r.api_type}/#{r.version}/#{r.path}?#{encoded_params}"
+  end
+
+  def construct_url(%__MODULE__{api_type: "portal"} = r) do
+    encoded_params = URI.encode_query(r.params)
+    "#{r.base_url}/#{r.path}?#{encoded_params}"
   end
 end
