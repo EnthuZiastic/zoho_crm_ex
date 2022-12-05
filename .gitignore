@@ -26,3 +26,4 @@ zoho_crm-*.tar
 /tmp/
 
 .env.*
+.nix-shell
