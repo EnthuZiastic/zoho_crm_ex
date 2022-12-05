@@ -38,4 +38,17 @@ defmodule ZohoCrm.Modules.Projects do
     |> Request.set_headers(r.access_token)
     |> Request.send()
   end
+
+  @spec create_task(ZohoCrm.InputRequest.t(), portal_id(), project_id()) ::
+          {:error, any} | {:ok, any}
+  def create_task(%InputRequest{} = r, portal_id, project_id) do
+    path = "/portal/#{portal_id}/projects/#{project_id}/tasks"
+
+    Request.new(@api_type)
+    |> Request.set_base_url(@project_base)
+    |> Request.with_path(path)
+    |> Request.with_method(:post)
+    |> Request.set_headers(r.access_token)
+    |> Request.send()
+  end
 end
