@@ -7,7 +7,7 @@ defmodule ZohoCrm.Modules.Projects do
   alias ZohoCrm.InputRequest
 
   @api_type "portal"
-  @project_base "https://projectsapi.zoho.in"
+  @project_base "https://projectsapi.zoho.in/restapi"
 
   @type portal_id() :: String.t()
   @type project_id() :: String.t()
