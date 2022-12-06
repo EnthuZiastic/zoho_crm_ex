@@ -99,6 +99,11 @@ defmodule ZohoCrm.Request do
     "#{r.base_url}/#{r.api_type}/#{r.version}/#{r.path}?#{encoded_params}"
   end
 
+  def construct_url(%__MODULE__{api_type: "oauth"} = r) do
+    encoded_params = URI.encode_query(r.params)
+    "#{r.base_url}/#{r.api_type}/#{r.version}/#{r.path}?#{encoded_params}"
+  end
+
   def construct_url(%__MODULE__{api_type: "portal"} = r) do
     encoded_params = URI.encode_query(r.params)
     "#{r.base_url}/#{r.path}?#{encoded_params}"
