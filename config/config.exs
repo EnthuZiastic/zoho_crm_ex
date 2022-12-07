@@ -21,6 +21,12 @@ use Mix.Config
 #     config :logger, level: :info
 #
 
+config :zoho_crm, :zoho,
+  client_id: {:system, "ZOHO_CLIENT_ID"},
+  client_secret: {:system, "ZOHO_CLIENT_SECRET"},
+  refresh_token: {:system, "ZOHO_REFRESH_TOKEN"}
+  project_refresh_token: {:system, "ZOHO_PROJECT_REFRESH_TOKEN"}
+
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment
 # by uncommenting the line below and defining dev.exs, test.exs and such.
