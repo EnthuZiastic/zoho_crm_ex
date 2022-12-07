@@ -17,7 +17,7 @@ defmodule ZohoCrm.Modules.Projects do
   @spec list_tasks(ZohoCrm.InputRequest.t(), portal_id(), project_id()) ::
           {:error, any} | {:ok, any}
   def list_tasks(%InputRequest{} = r, portal_id, project_id) do
-    path = "/portal/#{portal_id}/projects/#{project_id}/tasks"
+    path = "/portal/#{portal_id}/projects/#{project_id}/tasks/"
 
     Request.new(@api_type)
     |> Request.set_base_url(@project_base)
@@ -31,7 +31,7 @@ defmodule ZohoCrm.Modules.Projects do
   @spec get_task(ZohoCrm.InputRequest.t(), portal_id(), project_id(), task_id()) ::
           {:error, any} | {:ok, any}
   def get_task(%InputRequest{} = r, portal_id, project_id, task_id) do
-    path = "portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}"
+    path = "portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/"
 
     Request.new(@api_type)
     |> Request.set_base_url(@project_base)
@@ -45,7 +45,7 @@ defmodule ZohoCrm.Modules.Projects do
   @spec create_task(ZohoCrm.InputRequest.t(), portal_id(), project_id()) ::
           {:error, any} | {:ok, any}
   def create_task(%InputRequest{} = r, portal_id, project_id) do
-    path = "portal/#{portal_id}/projects/#{project_id}/tasks"
+    path = "portal/#{portal_id}/projects/#{project_id}/tasks/"
 
     Request.new(@api_type)
     |> Request.set_base_url(@project_base)
@@ -60,7 +60,7 @@ defmodule ZohoCrm.Modules.Projects do
   @spec list_comments(ZohoCrm.InputRequest.t(), portal_id(), project_id(), task_id()) ::
           {:error, any} | {:ok, any}
   def list_comments(%InputRequest{} = r, portal_id, project_id, task_id) do
-    path = "portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments"
+    path = "portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/"
 
     Request.new(@api_type)
     |> Request.set_base_url(@project_base)
@@ -75,7 +75,7 @@ defmodule ZohoCrm.Modules.Projects do
   @spec add_comment(ZohoCrm.InputRequest.t(), portal_id(), project_id(), task_id()) ::
           {:error, any} | {:ok, any}
   def add_comment(%InputRequest{} = r, portal_id, project_id, task_id) do
-    path = "portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments"
+    path = "portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/"
 
     Request.new(@api_type)
     |> Request.set_base_url(@project_base)
@@ -96,7 +96,7 @@ defmodule ZohoCrm.Modules.Projects do
         ) ::
           {:error, any} | {:ok, any}
   def update_comment(%InputRequest{} = r, portal_id, project_id, task_id, comment_id) do
-    path = "portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/#{comment_id}"
+    path = "portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/#{comment_id}/"
 
     Request.new(@api_type)
     |> Request.set_base_url(@project_base)
@@ -117,7 +117,7 @@ defmodule ZohoCrm.Modules.Projects do
         ) ::
           {:error, any} | {:ok, any}
   def delete_comment(%InputRequest{} = r, portal_id, project_id, task_id, comment_id) do
-    path = "portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/#{comment_id}"
+    path = "portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/#{comment_id}/"
 
     Request.new(@api_type)
     |> Request.set_base_url(@project_base)
