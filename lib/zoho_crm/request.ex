@@ -106,7 +106,6 @@ defmodule ZohoCrm.Request do
 
   def construct_url(%__MODULE__{api_type: "portal"} = r) do
     encoded_params = URI.encode_query(r.params)
-    IO.inspect("#{r.base_url}#{r.path}?#{encoded_params}")
     "#{r.base_url}#{r.path}?#{encoded_params}"
   end
 end
