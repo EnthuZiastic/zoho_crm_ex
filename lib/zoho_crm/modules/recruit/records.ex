@@ -37,4 +37,15 @@ defmodule ZohoCrm.Modules.Recruit.Records do
     |> Request.set_headers(r.access_token)
     |> Request.send()
   end
+
+  def search_recruit_records(%InputRequest{} = r) do
+    Request.new(@api_type)
+    |> Request.with_version(@version)
+    |> Request.with_method(:get)
+    |> Request.with_path("#{r.module_api_name}/search")
+    |> Request.set_headers(r.access_token)
+    |> Request.with_params(r.query_params)
+    |> Request.with_body(%{"data" => r.body})
+    |> Request.send()
+  end
 end
