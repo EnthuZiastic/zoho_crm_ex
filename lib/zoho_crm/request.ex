@@ -20,6 +20,13 @@ defmodule ZohoCrm.Request do
     version: @version
   ]
 
+  @doc """
+  Initialize Request struct
+
+  ## Example
+      iex> Request.new(api_type \\ "crm")
+  """
+  @spec new(String.t()) :: __MODULE__
   def new(api_type \\ "crm") do
     %__MODULE__{api_type: api_type}
   end
@@ -95,6 +102,11 @@ defmodule ZohoCrm.Request do
   defp json_or_value(data), do: data
 
   def construct_url(%__MODULE__{api_type: "crm"} = r) do
+    encoded_params = URI.encode_query(r.params)
+    "#{r.base_url}/#{r.api_type}/#{r.version}/#{r.path}?#{encoded_params}"
+  end
+
+  def construct_url(%__MODULE__{api_type: "recruit"} = r) do
     encoded_params = URI.encode_query(r.params)
     "#{r.base_url}/#{r.api_type}/#{r.version}/#{r.path}?#{encoded_params}"
   end
