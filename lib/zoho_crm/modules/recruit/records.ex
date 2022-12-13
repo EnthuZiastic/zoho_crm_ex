@@ -4,10 +4,12 @@ defmodule ZohoCrm.Modules.Recruit.Records do
 
   @api_type "recruit"
   @version "v2"
+  @project_base "https://recruit.zoho.com"
 
   def get_recruit_records(%InputRequest{} = r) do
     Request.new(@api_type)
     |> Request.with_version(@version)
+    |> Request.set_base_url(@project_base)
     |> Request.with_path("#{r.module_api_name}")
     |> Request.with_method(:get)
     |> Request.with_params(r.query_params)
@@ -18,6 +20,7 @@ defmodule ZohoCrm.Modules.Recruit.Records do
 
   def insert_recruit_records(%InputRequest{} = r) do
     Request.new(@api_type)
+    |> Request.set_base_url(@project_base)
     |> Request.with_version(@version)
     |> Request.with_path("#{r.module_api_name}")
     |> Request.with_method(:post)
@@ -29,6 +32,7 @@ defmodule ZohoCrm.Modules.Recruit.Records do
 
   def update_recruit_records(%InputRequest{} = r) do
     Request.new(@api_type)
+    |> Request.set_base_url(@project_base)
     |> Request.with_version(@version)
     |> Request.with_path("#{r.module_api_name}")
     |> Request.with_method(:post)
@@ -40,6 +44,7 @@ defmodule ZohoCrm.Modules.Recruit.Records do
 
   def search_recruit_records(%InputRequest{} = r) do
     Request.new(@api_type)
+    |> Request.set_base_url(@project_base)
     |> Request.with_version(@version)
     |> Request.with_method(:get)
     |> Request.with_path("#{r.module_api_name}/search")
