@@ -7,6 +7,8 @@ defmodule ZohoCrm.InputRequest do
   @enforce_keys [:access_token]
   @type access_token :: String.t()
   @type module_api_name :: String.t()
+  @type query_params :: map()
+  @type body :: map()
 
   @type t() :: %__MODULE__{
           access_token: String.t(),
@@ -15,7 +17,7 @@ defmodule ZohoCrm.InputRequest do
           body: map()
         }
 
-  @spec new(access_token, module_api_name, map(), map()) :: t()
+  @spec new(access_token, module_api_name, query_params, body) :: t()
   def new(access_token, module_api_name \\ nil, query_params \\ %{}, body \\ %{}) do
     %__MODULE__{
       access_token: access_token,
