@@ -13,7 +13,6 @@ defmodule ZohoCrm.Modules.Recruit.Records do
     |> Request.with_path("#{r.module_api_name}")
     |> Request.with_method(:get)
     |> Request.with_params(r.query_params)
-    |> Request.with_body(%{"data" => r.body})
     |> Request.set_headers(r.access_token)
     |> Request.send()
   end
