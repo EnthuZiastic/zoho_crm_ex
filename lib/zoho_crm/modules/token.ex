@@ -23,4 +23,6 @@ defmodule ZohoCrm.Modules.Token do
     |> Request.with_params(params)
     |> Request.send()
   end
+
+  def refresh_access_token(_), do: {:error, "INVALID_REFRESH_TOKEN"}
 end
