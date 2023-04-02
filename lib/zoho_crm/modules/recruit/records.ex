@@ -35,7 +35,7 @@ defmodule ZohoCrm.Modules.Recruit.Records do
     |> Request.set_base_url(@project_base)
     |> Request.with_version(@version)
     |> Request.with_path("#{r.module_api_name}")
-    |> Request.with_method(:post)
+    |> Request.with_method(:put)
     |> Request.with_params(r.query_params)
     |> Request.with_body(%{"data" => r.body})
     |> Request.set_headers(r.access_token)
