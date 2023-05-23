@@ -128,4 +128,18 @@ defmodule ZohoCrm.Modules.Projects do
     |> Request.set_headers(r.access_token)
     |> Request.send()
   end
+
+  @spec list_users(InputRequest.t(), portal_id(), project_id()) ::
+          {:error, [map()]} | {:ok, any}
+  def list_users(%InputRequest{} = r, portal_id, project_id) do
+    path = "/portal/#{portal_id}/projects/#{project_id}/tasks/"
+
+    Request.new(@api_type)
+    |> Request.set_base_url(@project_base)
+    |> Request.with_path(path)
+    |> Request.with_method(:get)
+    |> Request.with_params(r.query_params)
+    |> Request.set_headers(r.access_token)
+    |> Request.send()
+  end
 end

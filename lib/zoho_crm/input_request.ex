@@ -6,7 +6,7 @@ defmodule ZohoCrm.InputRequest do
 
   @enforce_keys [:access_token]
   @type access_token :: String.t()
-  @type module_api_name :: String.t()
+  @type module_api_name :: String.t() | nil
   @type query_params :: map()
   @type body :: map()
 
