@@ -132,7 +132,7 @@ defmodule ZohoCrm.Modules.Projects do
   @spec list_users(InputRequest.t(), portal_id(), project_id()) ::
           {:error, [map()]} | {:ok, any}
   def list_users(%InputRequest{} = r, portal_id, project_id) do
-    path = "/portal/#{portal_id}/projects/#{project_id}/tasks/"
+    path = "/portal/#{portal_id}/projects/#{project_id}/users/"
 
     Request.new(@api_type)
     |> Request.set_base_url(@project_base)
