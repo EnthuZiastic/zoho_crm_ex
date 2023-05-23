@@ -2,9 +2,10 @@ defmodule ZohoCrm.InputRequest do
   @moduledoc """
   Api input request data structure
   """
-  defstruct [:module_api_name, :body, :query_params, :access_token]
 
   @enforce_keys [:access_token]
+  defstruct [:module_api_name, :body, :query_params, :access_token]
+
   @type access_token :: String.t()
   @type module_api_name :: String.t() | nil
   @type query_params :: map()
@@ -12,7 +13,7 @@ defmodule ZohoCrm.InputRequest do
 
   @type t() :: %__MODULE__{
           access_token: String.t(),
-          module_api_name: String.t() | nil,
+          module_api_name: module_api_name(),
           query_params: map(),
           body: map()
         }

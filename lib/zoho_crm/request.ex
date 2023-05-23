@@ -4,11 +4,11 @@ defmodule ZohoCrm.Request do
   """
   @base_url "https://www.zohoapis.in"
   @version "v3"
-
-  @enforce_keys [:api_type]
   @default_headers [
     {"Content-Type", "application/json"}
   ]
+
+  @enforce_keys [:api_type]
   defstruct [
     :path,
     :method,
