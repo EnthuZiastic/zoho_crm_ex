@@ -67,7 +67,6 @@ defmodule ZohoCrm.Request do
   def send(%__MODULE__{} = r) do
     url = construct_url(r)
     body = if is_map(r.body), do: Jason.encode!(r.body), else: r.body
-    IO.inspect(url: url, body: body, headers: r.headers, request: r)
 
     HTTPoison.request(r.method, url, body, r.headers)
     |> handle_response()
