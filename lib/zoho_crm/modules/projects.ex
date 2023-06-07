@@ -60,7 +60,7 @@ defmodule ZohoCrm.Modules.Projects do
   @spec update_task(ZohoCrm.InputRequest.t(), portal_id(), project_id(), task_id()) ::
           {:error, any} | {:ok, any}
   def update_task(%InputRequest{} = r, portal_id, project_id, task_id) do
-    path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}"
+    path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/"
 
     Request.new(@api_type)
     |> Request.set_base_url(@project_base)
