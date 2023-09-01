@@ -27,3 +27,4 @@ zoho_crm-*.tar
 
 .env.*
 .nix-shell
+.vscode
