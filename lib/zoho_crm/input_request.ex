@@ -27,4 +27,20 @@ defmodule ZohoCrm.InputRequest do
       query_params: query_params
     }
   end
+
+  def with_module_api_name(%__MODULE__{} = ir, module_api_name \\ nil) do
+    %{ir | module_api_name: module_api_name}
+  end
+
+  def with_access_token(%__MODULE__{} = ir, access_token) when is_binary(access_token) do
+    %{ir | access_token: access_token}
+  end
+
+  def with_query_params(%__MODULE__{} = ir, query_params \\ %{}) when is_map(query_params) do
+    %{ir | query_params: query_params}
+  end
+
+  def with_body(%__MODULE__{} = ir, body \\ %{}) when is_map(body) do
+    %{ir | body: body}
+  end
 end
