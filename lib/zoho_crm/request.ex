@@ -68,7 +68,8 @@ defmodule ZohoCrm.Request do
     url = construct_url(r)
     body = if is_map(r.body), do: Jason.encode!(r.body), else: r.body
 
-    HTTPoison.request(r.method, url, body, r.headers)
+    r.method
+    |> HTTPoison.request(url, body, r.headers)
     |> handle_response()
   end
 
@@ -107,6 +108,11 @@ defmodule ZohoCrm.Request do
   end
 
   def construct_url(%__MODULE__{api_type: "recruit"} = r) do
+    encoded_params = URI.encode_query(r.params)
+    "#{r.base_url}/#{r.api_type}/#{r.version}/#{r.path}?#{encoded_params}"
+  end
+
+  def construct_url(%__MODULE__{api_type: "booking"} = r) do
     encoded_params = URI.encode_query(r.params)
     "#{r.base_url}/#{r.api_type}/#{r.version}/#{r.path}?#{encoded_params}"
   end
