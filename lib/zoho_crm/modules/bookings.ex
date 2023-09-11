@@ -6,7 +6,7 @@ defmodule ZohoCrm.Modules.Bookings do
   alias ZohoCrm.Request
   alias ZohoCrm.InputRequest
 
-  @api_type "booking"
+  @api_type "bookings"
   @version "v1"
 
   @spec get_appointment(InputRequest.t()) :: {:error, any} | {:ok, any}
