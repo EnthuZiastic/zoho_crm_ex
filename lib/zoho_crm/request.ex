@@ -112,7 +112,7 @@ defmodule ZohoCrm.Request do
     "#{r.base_url}/#{r.api_type}/#{r.version}/#{r.path}?#{encoded_params}"
   end
 
-  def construct_url(%__MODULE__{api_type: "booking"} = r) do
+  def construct_url(%__MODULE__{api_type: "bookings"} = r) do
     encoded_params = URI.encode_query(r.params)
     "#{r.base_url}/#{r.api_type}/#{r.version}/#{r.path}?#{encoded_params}"
   end
