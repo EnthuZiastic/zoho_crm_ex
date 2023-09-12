@@ -19,12 +19,9 @@ defmodule ZohoCrm.Modules.Projects do
   def list_tasks(%InputRequest{} = r, portal_id, project_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/"
 
-    Request.new(@api_type)
-    |> Request.set_base_url(@project_base)
+    construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:get)
-    |> Request.with_params(r.query_params)
-    |> Request.set_headers(r.access_token)
     |> Request.send()
   end
 
@@ -33,12 +30,9 @@ defmodule ZohoCrm.Modules.Projects do
   def get_task(%InputRequest{} = r, portal_id, project_id, task_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/"
 
-    Request.new(@api_type)
-    |> Request.set_base_url(@project_base)
+    construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:get)
-    |> Request.with_params(r.query_params)
-    |> Request.set_headers(r.access_token)
     |> Request.send()
   end
 
@@ -47,13 +41,10 @@ defmodule ZohoCrm.Modules.Projects do
   def create_task(%InputRequest{} = r, portal_id, project_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/"
 
-    Request.new(@api_type)
-    |> Request.set_base_url(@project_base)
+    construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:post)
     |> Request.with_body(r.body)
-    |> Request.with_params(r.query_params)
-    |> Request.set_headers(r.access_token)
     |> Request.send()
   end
 
@@ -62,13 +53,10 @@ defmodule ZohoCrm.Modules.Projects do
   def update_task(%InputRequest{} = r, portal_id, project_id, task_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/"
 
-    Request.new(@api_type)
-    |> Request.set_base_url(@project_base)
+    construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:post)
     |> Request.with_body(r.body)
-    |> Request.with_params(r.query_params)
-    |> Request.set_headers(r.access_token)
     |> Request.send()
   end
 
@@ -77,13 +65,10 @@ defmodule ZohoCrm.Modules.Projects do
   def list_comments(%InputRequest{} = r, portal_id, project_id, task_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/"
 
-    Request.new(@api_type)
-    |> Request.set_base_url(@project_base)
+    construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:get)
     |> Request.with_body(r.body)
-    |> Request.with_params(r.query_params)
-    |> Request.set_headers(r.access_token)
     |> Request.send()
   end
 
@@ -92,13 +77,10 @@ defmodule ZohoCrm.Modules.Projects do
   def add_comment(%InputRequest{} = r, portal_id, project_id, task_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/"
 
-    Request.new(@api_type)
-    |> Request.set_base_url(@project_base)
+    construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:post)
     |> Request.with_body(r.body)
-    |> Request.with_params(r.query_params)
-    |> Request.set_headers(r.access_token)
     |> Request.send()
   end
 
@@ -113,13 +95,10 @@ defmodule ZohoCrm.Modules.Projects do
   def update_comment(%InputRequest{} = r, portal_id, project_id, task_id, comment_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/#{comment_id}/"
 
-    Request.new(@api_type)
-    |> Request.set_base_url(@project_base)
+    construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:post)
     |> Request.with_body(r.body)
-    |> Request.with_params(r.query_params)
-    |> Request.set_headers(r.access_token)
     |> Request.send()
   end
 
@@ -134,13 +113,10 @@ defmodule ZohoCrm.Modules.Projects do
   def delete_comment(%InputRequest{} = r, portal_id, project_id, task_id, comment_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/#{comment_id}/"
 
-    Request.new(@api_type)
-    |> Request.set_base_url(@project_base)
+    construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:delete)
     |> Request.with_body(r.body)
-    |> Request.with_params(r.query_params)
-    |> Request.set_headers(r.access_token)
     |> Request.send()
   end
 
@@ -149,12 +125,16 @@ defmodule ZohoCrm.Modules.Projects do
   def list_users(%InputRequest{} = r, portal_id, project_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/users/"
 
-    Request.new(@api_type)
-    |> Request.set_base_url(@project_base)
+    construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:get)
-    |> Request.with_params(r.query_params)
-    |> Request.set_headers(r.access_token)
     |> Request.send()
+  end
+
+  defp construct_request(%InputRequest{} = ir) do
+    Request.new(@api_type)
+    |> Request.set_base_url(@project_base)
+    |> Request.set_access_token(ir.access_token)
+    |> Request.with_params(ir.query_params)
   end
 end

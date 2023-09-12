@@ -9,6 +9,10 @@ defmodule ZohoCrm.Modules.Bookings do
   @api_type "bookings"
   @version "v1"
 
+  @form_content_type %{
+    "Content-Type" => "application/x-www-form-urlencoded"
+  }
+
   @spec get_appointment(InputRequest.t()) :: {:error, any} | {:ok, any}
   def get_appointment(%InputRequest{} = r) do
     construct_request(r)
@@ -24,6 +28,7 @@ defmodule ZohoCrm.Modules.Bookings do
     |> Request.with_method(:post)
     |> Request.with_path("/json/appointment")
     |> Request.with_body(r.body)
+    |> Request.set_headers(@form_content_type)
     |> Request.send()
   end
 
@@ -33,6 +38,7 @@ defmodule ZohoCrm.Modules.Bookings do
     |> Request.with_method(:post)
     |> Request.with_path("/json/updateappointment")
     |> Request.with_body(r.body)
+    |> Request.set_headers(@form_content_type)
     |> Request.send()
   end
 
@@ -42,6 +48,7 @@ defmodule ZohoCrm.Modules.Bookings do
     |> Request.with_method(:post)
     |> Request.with_path("/json/rescheduleappointment")
     |> Request.with_body(r.body)
+    |> Request.set_headers(@form_content_type)
     |> Request.send()
   end
 
@@ -57,6 +64,6 @@ defmodule ZohoCrm.Modules.Bookings do
   defp construct_request(%InputRequest{} = ir) do
     Request.new(@api_type)
     |> Request.with_version(@version)
-    |> Request.set_headers(ir.access_token)
+    |> Request.set_access_token(ir.access_token)
   end
 end

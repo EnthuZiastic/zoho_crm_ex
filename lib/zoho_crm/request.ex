@@ -4,9 +4,10 @@ defmodule ZohoCrm.Request do
   """
   @base_url "https://www.zohoapis.in"
   @version "v3"
-  @default_headers [
-    {"Content-Type", "application/json"}
-  ]
+
+  @default_headers %{
+    "Content-Type" => "application/json"
+  }
 
   @enforce_keys [:api_type]
   defstruct [
@@ -47,9 +48,21 @@ defmodule ZohoCrm.Request do
     %{r | base_url: base_url}
   end
 
-  def set_headers(%__MODULE__{} = r, access_token) do
-    headers = prepare_default_headers(access_token)
+  def set_headers(%__MODULE__{} = r, headers) when is_map(headers) do
+    headers =
+      @default_headers
+      |> Map.merge(r.headers)
+      |> Map.merge(headers)
+
     %{r | headers: headers}
+  end
+
+  def set_access_token(%__MODULE__{} = r, access_token) do
+    token = %{
+      "Authorization" => "Zoho-oauthtoken #{access_token}"
+    }
+
+    %{r | headers: Map.merge(r.headers, token)}
   end
 
   def with_path(%__MODULE__{} = r, path) do
@@ -71,13 +84,6 @@ defmodule ZohoCrm.Request do
     r.method
     |> HTTPoison.request(url, body, r.headers)
     |> handle_response()
-  end
-
-  defp prepare_default_headers(access_token) do
-    %{
-      "Content-Type" => "Application/json",
-      "Authorization" => "Zoho-oauthtoken #{access_token}"
-    }
   end
 
   defp handle_response({:ok, %HTTPoison.Response{body: body, status_code: status_code}})
