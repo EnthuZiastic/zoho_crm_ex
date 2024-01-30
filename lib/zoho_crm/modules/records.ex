@@ -20,6 +20,13 @@ defmodule ZohoCrm.Modules.Records do
     |> Request.send()
   end
 
+  def upsert_records(%InputRequest{} = r) do
+    construct_request(r)
+    |> Request.with_method(:post)
+    |> Request.with_path("#{r.module_api_name}/upsert")
+    |> Request.send()
+  end
+
   def update_records(%InputRequest{} = r) do
     construct_request(r)
     |> Request.with_method(:put)
