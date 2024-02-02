@@ -20,8 +20,20 @@ defmodule ZohoCrm.Modules.Records do
     |> Request.send()
   end
 
-  def upsert_records(%InputRequest{} = r) do
-    construct_request(r)
+  def upsert_records(%InputRequest{} = r, opts \\ []) do
+    request = construct_request(r)
+
+    updated_request =
+      case Keyword.get(opts, :duplicate_check_fields) do
+        fields when is_list(fields) ->
+          body = Map.merge(request.body, %{"duplicate_check_fields" => fields})
+          Request.with_body(request, body)
+
+        _ ->
+          request
+      end
+
+    updated_request
     |> Request.with_method(:post)
     |> Request.with_path("#{r.module_api_name}/upsert")
     |> Request.send()
