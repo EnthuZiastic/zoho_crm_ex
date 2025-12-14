@@ -30,3 +30,6 @@ zoho_crm-*.tar
 .vscode
 .db
 .elixir_ls
+.DS_Store
+.serena/
+.claude/
