@@ -3,7 +3,7 @@ defmodule ZohoCrm.Request do
   handle HTTP request to Zoho CRM
   """
   @base_url "https://www.zohoapis.in"
-  @version "v3"
+  @version "v8"
 
   @default_headers %{
     "Content-Type" => "application/json"
