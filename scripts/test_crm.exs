@@ -44,12 +44,12 @@ defmodule TestHelper do
     case result do
       {:ok, data} ->
         IO.puts("[PASS] #{name}")
-        IO.puts("  Response: #{inspect(data, limit: 3, pretty: true)}\n")
+        IO.puts("  Response: #{inspect(data, limit: :infinity, pretty: true, width: 120)}\n")
         {:ok, data}
 
       {:error, reason} ->
         IO.puts("[FAIL] #{name}")
-        IO.puts("  Error: #{inspect(reason)}\n")
+        IO.puts("  Error: #{inspect(reason, limit: :infinity, pretty: true)}\n")
         {:error, reason}
     end
   end
@@ -98,12 +98,23 @@ TestHelper.section("Search Records")
 
 search_input =
   base_input
-  |> InputRequest.with_query_params(%{"criteria" => "(Created_Time:greater_than:2020-01-01T00:00:00+00:00)"})
+  |> InputRequest.with_query_params(%{"criteria" => "(Created_Time:greater_than:2026-01-13T00:00:00+00:00)"})
 
-TestHelper.print_result(
-  "Search #{config[:crm][:module]} by Created_Time",
-  Records.search_records(search_input)
-)
+case Records.search_records(search_input) do
+  {:ok, %{"data" => [first_record | _], "info" => info}} ->
+    IO.puts("[PASS] Search #{config[:crm][:module]} by Created_Time")
+    IO.puts("  Count: #{info["count"]} records")
+    IO.puts("  More records: #{info["more_records"]}")
+    IO.puts("  Attributes (#{map_size(first_record)}): #{first_record |> Map.keys() |> Enum.sort() |> Enum.join(", ")}")
+    # IO.puts("  Sample record: #{inspect(first_record, limit: :infinity, pretty: true, width: 120)}\n")
+
+  {:ok, %{"data" => []}} ->
+    IO.puts("[PASS] Search #{config[:crm][:module]} - no records found\n")
+
+  {:error, reason} ->
+    IO.puts("[FAIL] Search #{config[:crm][:module]}")
+    IO.puts("  Error: #{inspect(reason)}\n")
+end
 
 # Test 3: Get Specific Record (if record_id provided)
 if config[:crm][:record_id] do
@@ -129,7 +140,10 @@ create_input =
   ])
 
 case TestHelper.print_result("Create test #{config[:crm][:module]}", Records.insert_records(create_input)) do
-  {:ok, %{"data" => [%{"details" => %{"id" => record_id}} | _]}} ->
+  {:ok, %{"data" => [%{"details" => %{"id" => record_id}} = first_result | _]}} ->
+    IO.puts("  ✓ Created record ID: #{record_id}")
+    IO.puts("  ✓ Full details: #{inspect(first_result, pretty: true)}\n")
+
     TestHelper.section("Delete Created Record")
 
     delete_input =

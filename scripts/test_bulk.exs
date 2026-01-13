@@ -130,7 +130,7 @@ bulk_read_input =
           %{
             "api_name" => "Created_Time",
             "comparator" => "greater_than",
-            "value" => "2020-01-01T00:00:00+00:00"
+            "value" => "2026-01-13T00:00:00+00:00"
           }
         ],
         "group_operator" => "and"
