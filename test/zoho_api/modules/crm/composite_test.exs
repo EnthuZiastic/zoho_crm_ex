@@ -87,6 +87,130 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
       assert {:error, message} = Composite.execute(input)
       assert message =~ "must contain __composite_requests array"
     end
+
+    test "returns error when request is missing 'method' field" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "__composite_requests" => [
+            %{"reference_id" => "ref_1", "url" => "/crm/v8/Leads"}
+          ]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "Request 1: missing required field 'method'"
+    end
+
+    test "returns error when request is missing 'reference_id' field" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "__composite_requests" => [
+            %{"method" => "GET", "url" => "/crm/v8/Leads"}
+          ]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "Request 1: missing required field 'reference_id'"
+    end
+
+    test "returns error when request is missing 'url' field" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "__composite_requests" => [
+            %{"method" => "GET", "reference_id" => "ref_1"}
+          ]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "Request 1: missing required field 'url'"
+    end
+
+    test "returns error for invalid HTTP method" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "__composite_requests" => [
+            %{"method" => "PATCH", "reference_id" => "ref_1", "url" => "/crm/v8/Leads"}
+          ]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "Request 1: invalid method 'PATCH'"
+      assert message =~ "Must be one of: GET, POST, PUT, DELETE"
+    end
+
+    test "returns error for duplicate reference_ids" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "__composite_requests" => [
+            %{"method" => "GET", "reference_id" => "same_ref", "url" => "/crm/v8/Leads"},
+            %{"method" => "GET", "reference_id" => "same_ref", "url" => "/crm/v8/Contacts"}
+          ]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "Duplicate reference_id found"
+    end
+
+    test "returns error for empty reference_id" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "__composite_requests" => [
+            %{"method" => "GET", "reference_id" => "", "url" => "/crm/v8/Leads"}
+          ]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "reference_id must be a non-empty string"
+    end
+
+    test "returns error for empty url" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "__composite_requests" => [
+            %{"method" => "GET", "reference_id" => "ref_1", "url" => ""}
+          ]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "url must be a non-empty string"
+    end
+
+    test "returns error when request is not a map" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "__composite_requests" => ["not a map"]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "Request 1: must be a map"
+    end
+
+    test "accepts lowercase HTTP methods" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"__composite_responses" => []})
+         }}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "__composite_requests" => [
+            %{"method" => "get", "reference_id" => "ref_1", "url" => "/crm/v8/Leads"}
+          ]
+        })
+
+      assert {:ok, _} = Composite.execute(input)
+    end
   end
 
   describe "build_request/4" do
