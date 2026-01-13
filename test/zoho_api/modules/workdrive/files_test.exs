@@ -10,7 +10,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
 
   describe "list_files/2" do
     test "lists files in a folder" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, headers, _opts ->
         assert url =~ "workdrive/api/v1/files/folder_123/files"
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
@@ -30,7 +30,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
 
   describe "get_file/2" do
     test "gets file details" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "files/file_123"
 
         {:ok,
@@ -52,7 +52,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
 
   describe "download_file/2" do
     test "downloads file content" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "download/file_123"
 
         {:ok,
@@ -71,7 +71,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
 
   describe "rename_file/2" do
     test "renames a file" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :patch, url, body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :patch, url, body, _headers, _opts ->
         assert url =~ "files/file_123"
         body_map = Jason.decode!(body)
         assert body_map["data"]["attributes"]["name"] == "renamed.pdf"
@@ -100,7 +100,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
 
   describe "move_file/2" do
     test "moves a file to another folder" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :patch, url, body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :patch, url, body, _headers, _opts ->
         assert url =~ "files/file_123"
         body_map = Jason.decode!(body)
         assert body_map["data"]["attributes"]["parent_id"] == "new_folder"
@@ -129,7 +129,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
 
   describe "copy_file/2" do
     test "copies a file to another folder" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, _body, _headers, _opts ->
         assert url =~ "files/file_123/copy"
 
         {:ok,
@@ -156,7 +156,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
 
   describe "delete_file/2" do
     test "deletes a file" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :delete, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :delete, url, _body, _headers, _opts ->
         assert url =~ "files/file_123"
 
         {:ok,
@@ -173,7 +173,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
 
   describe "search_files/1" do
     test "searches for files" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "files/search"
         assert url =~ "search_string=report"
 

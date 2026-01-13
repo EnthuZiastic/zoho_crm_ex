@@ -83,11 +83,15 @@ defmodule ZohoAPI.Request do
     }
   }
 
+  # Default timeout in milliseconds (30 seconds)
+  @default_timeout 30_000
+
   @enforce_keys [:api_type]
   defstruct [
     :path,
     :method,
     :api_type,
+    :timeout,
     params: %{},
     body: %{},
     headers: @default_headers,
@@ -107,7 +111,8 @@ defmodule ZohoAPI.Request do
           headers: map(),
           base_url: String.t(),
           version: String.t(),
-          region: region()
+          region: region(),
+          timeout: non_neg_integer() | nil
         }
 
   @doc """
@@ -235,6 +240,23 @@ defmodule ZohoAPI.Request do
   end
 
   @doc """
+  Sets the request timeout in milliseconds.
+
+  Default timeout is 30 seconds (30_000 ms). For bulk operations that
+  may take longer, increase this value accordingly.
+
+  ## Examples
+
+      # Set 5 minute timeout for bulk operations
+      Request.new("bulk")
+      |> Request.with_timeout(300_000)
+  """
+  @spec with_timeout(t(), non_neg_integer()) :: t()
+  def with_timeout(%__MODULE__{} = r, timeout) when is_integer(timeout) and timeout > 0 do
+    %{r | timeout: timeout}
+  end
+
+  @doc """
   Sends the HTTP request.
 
   ## Returns
@@ -246,10 +268,12 @@ defmodule ZohoAPI.Request do
   def send(%__MODULE__{} = r) do
     url = construct_url(r)
     headers = Map.to_list(r.headers)
+    timeout = r.timeout || Application.get_env(:zoho_api, :http_timeout, @default_timeout)
+    options = [timeout: timeout, recv_timeout: timeout]
 
     case encode_body(r.body) do
       {:ok, body} ->
-        HTTPClient.impl().request(r.method, url, body, headers)
+        HTTPClient.impl().request(r.method, url, body, headers, options)
         |> handle_response()
 
       {:error, _} = error ->

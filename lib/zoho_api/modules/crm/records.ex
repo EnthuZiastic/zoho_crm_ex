@@ -30,6 +30,7 @@ defmodule ZohoAPI.Modules.CRM.Records do
 
   alias ZohoAPI.InputRequest
   alias ZohoAPI.Request
+  alias ZohoAPI.Validation
 
   @doc """
   Gets records from a Zoho CRM module.
@@ -66,10 +67,12 @@ defmodule ZohoAPI.Modules.CRM.Records do
   """
   @spec get_record(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def get_record(%InputRequest{} = r, record_id) do
-    construct_request(r)
-    |> Request.with_path("#{r.module_api_name}/#{record_id}")
-    |> Request.with_method(:get)
-    |> Request.send()
+    with :ok <- Validation.validate_id(record_id) do
+      construct_request(r)
+      |> Request.with_path("#{r.module_api_name}/#{record_id}")
+      |> Request.with_method(:get)
+      |> Request.send()
+    end
   end
 
   @doc """

@@ -10,7 +10,7 @@ defmodule ZohoAPI.Modules.CRM.BulkWriteTest do
 
   describe "upload_file/2" do
     test "uploads a CSV file" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
         assert url =~ "crm/bulk/v8/write/file"
         assert url =~ "module=Leads"
         assert {"Content-Type", "text/csv"} in headers
@@ -41,7 +41,7 @@ defmodule ZohoAPI.Modules.CRM.BulkWriteTest do
 
   describe "create_job/1" do
     test "creates a bulk write job" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
         assert url =~ "crm/bulk/v8/write"
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
@@ -87,7 +87,7 @@ defmodule ZohoAPI.Modules.CRM.BulkWriteTest do
 
   describe "get_job_status/2" do
     test "gets bulk write job status" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "crm/bulk/v8/write/job_456"
 
         {:ok,

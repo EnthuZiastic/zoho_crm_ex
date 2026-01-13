@@ -10,7 +10,7 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
 
   describe "get_records/1" do
     test "fetches records from a module" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, headers, _opts ->
         assert url =~ "crm/v8/Leads"
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
@@ -33,7 +33,7 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
 
   describe "get_record/2" do
     test "fetches a specific record by ID" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "crm/v8/Leads/record_123"
 
         {:ok,
@@ -55,7 +55,7 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
 
   describe "insert_records/1" do
     test "inserts new records" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers, _opts ->
         assert url =~ "crm/v8/Contacts"
         body_map = Jason.decode!(body)
         assert body_map["data"] == [%{"Last_Name" => "Smith"}]
@@ -83,7 +83,7 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
 
   describe "upsert_records/2" do
     test "upserts records with duplicate check fields" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers, _opts ->
         assert url =~ "crm/v8/Leads/upsert"
         body_map = Jason.decode!(body)
         assert body_map["duplicate_check_fields"] == ["Email"]
@@ -108,7 +108,7 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
 
   describe "update_records/1" do
     test "updates existing records" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :put, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :put, url, _body, _headers, _opts ->
         assert url =~ "crm/v8/Leads"
 
         {:ok,
@@ -131,7 +131,7 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
 
   describe "search_records/1" do
     test "searches records" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "crm/v8/Leads/search"
         assert url =~ "criteria"
 
@@ -155,7 +155,7 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
 
   describe "coql_query/1" do
     test "executes COQL query" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers, _opts ->
         assert url =~ "crm/v8/coql"
         body_map = Jason.decode!(body)
         assert body_map["select_query"] =~ "from Leads"
@@ -179,7 +179,7 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
 
   describe "delete_records/1" do
     test "deletes records" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :delete, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :delete, url, _body, _headers, _opts ->
         assert url =~ "crm/v8/Leads"
         assert url =~ "ids=123"
 
@@ -198,6 +198,34 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
       {:ok, result} = Records.delete_records(input)
 
       assert result["data"] == [%{"code" => "SUCCESS"}]
+    end
+  end
+
+  describe "get_record/2 ID validation" do
+    test "rejects path traversal in record ID" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_module_api_name("Leads")
+
+      assert {:error, "Invalid ID: path traversal not allowed"} =
+               Records.get_record(input, "../admin")
+    end
+
+    test "rejects path separators in record ID" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_module_api_name("Leads")
+
+      assert {:error, "Invalid ID: path separators not allowed"} =
+               Records.get_record(input, "foo/bar")
+    end
+
+    test "rejects empty record ID" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_module_api_name("Leads")
+
+      assert {:error, "ID cannot be empty"} = Records.get_record(input, "")
     end
   end
 end
