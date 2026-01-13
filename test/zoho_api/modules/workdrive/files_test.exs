@@ -193,4 +193,42 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
       assert length(result["data"]) == 1
     end
   end
+
+  describe "upload_file/3 validation" do
+    test "rejects file names with path traversal" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body("file content")
+
+      assert {:error, message} = Files.upload_file(input, "folder_123", "../../../etc/passwd")
+      assert message =~ "path traversal"
+    end
+
+    test "rejects file names with forward slash" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body("file content")
+
+      assert {:error, message} = Files.upload_file(input, "folder_123", "path/to/file.txt")
+      assert message =~ "path separators"
+    end
+
+    test "rejects file names with backslash" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body("file content")
+
+      assert {:error, message} = Files.upload_file(input, "folder_123", "path\\to\\file.txt")
+      assert message =~ "path separators"
+    end
+
+    test "rejects empty file names" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body("file content")
+
+      assert {:error, message} = Files.upload_file(input, "folder_123", "   ")
+      assert message =~ "cannot be empty"
+    end
+  end
 end

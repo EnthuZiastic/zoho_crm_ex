@@ -68,14 +68,36 @@ defmodule ZohoAPI.Modules.CRM.Composite do
     - `{:ok, %{"__composite_responses" => [...]}}` on success
     - `{:error, reason}` on failure
   """
+  @max_composite_requests 5
+
   @spec execute(InputRequest.t()) :: {:ok, map()} | {:error, any()}
   def execute(%InputRequest{} = r) do
-    Request.new("composite")
-    |> Request.set_access_token(r.access_token)
-    |> Request.with_params(r.query_params)
-    |> Request.with_body(r.body)
-    |> Request.with_method(:post)
-    |> Request.send()
+    with :ok <- validate_composite_requests(r.body) do
+      Request.new("composite")
+      |> Request.set_access_token(r.access_token)
+      |> Request.with_params(r.query_params)
+      |> Request.with_body(r.body)
+      |> Request.with_method(:post)
+      |> Request.send()
+    end
+  end
+
+  defp validate_composite_requests(%{"__composite_requests" => []}),
+    do: {:error, "At least one composite request is required"}
+
+  defp validate_composite_requests(%{"__composite_requests" => requests}) when is_list(requests) do
+    count = length(requests)
+
+    if count > @max_composite_requests do
+      {:error,
+       "Composite API supports a maximum of #{@max_composite_requests} requests, got #{count}"}
+    else
+      :ok
+    end
+  end
+
+  defp validate_composite_requests(_) do
+    {:error, "Body must contain __composite_requests array"}
   end
 
   @doc """

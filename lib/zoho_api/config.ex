@@ -118,6 +118,21 @@ defmodule ZohoAPI.Config do
           "Add config :zoho_api, :#{service}, client_id: ..., client_secret: ..."
   end
 
-  defp get_value({:system, system_var}), do: System.get_env(system_var)
+  defp get_value({:system, system_var}) do
+    case System.get_env(system_var) do
+      nil ->
+        raise ArgumentError,
+          message: "Environment variable #{system_var} is not set"
+
+      "" ->
+        raise ArgumentError,
+          message: "Environment variable #{system_var} is empty"
+
+      value ->
+        value
+    end
+  end
+
+  defp get_value(nil), do: nil
   defp get_value(value), do: value
 end

@@ -111,4 +111,19 @@ defmodule ZohoAPI.Modules.CRM.BulkWriteTest do
       assert result["result"]["added_count"] == 100
     end
   end
+
+  describe "upload_file/2 validation" do
+    test "rejects files exceeding 25MB limit" do
+      # Create a string larger than 25MB
+      large_content = String.duplicate("x", 26 * 1024 * 1024)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(large_content)
+
+      assert {:error, message} = BulkWrite.upload_file(input, "Leads")
+      assert message =~ "exceeds maximum allowed size"
+      assert message =~ "25.0 MB"
+    end
+  end
 end
