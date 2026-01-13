@@ -25,6 +25,12 @@ end
 
 config = Code.eval_file(config_path) |> elem(0)
 
+# Configure the application with credentials from config.exs
+Application.put_env(:zoho_api, :crm,
+  client_id: config[:client_id],
+  client_secret: config[:client_secret]
+)
+
 alias ZohoAPI.InputRequest
 alias ZohoAPI.Modules.CRM.Records
 alias ZohoAPI.Modules.Token
@@ -63,7 +69,7 @@ access_token =
   else
     IO.puts("Refreshing access token...")
 
-    case Token.refresh_access_token(config[:refresh_token], :crm, region: config[:region]) do
+    case Token.refresh_access_token(config[:refresh_token], service: :crm, region: config[:region]) do
       {:ok, %{"access_token" => token}} ->
         IO.puts("[PASS] Token refreshed successfully")
         token
@@ -83,7 +89,8 @@ base_input =
 # Test 1: Get Records (List)
 TestHelper.section("Get Records (List)")
 
-input = base_input |> InputRequest.with_query_params(%{"per_page" => 5})
+# Note: Zoho CRM v8 requires 'fields' parameter
+input = base_input |> InputRequest.with_query_params(%{"per_page" => 5, "fields" => "Last_Name,Email,Company"})
 TestHelper.print_result("Get #{config[:crm][:module]} (5 records)", Records.get_records(input))
 
 # Test 2: Search Records
@@ -102,13 +109,9 @@ TestHelper.print_result(
 if config[:crm][:record_id] do
   TestHelper.section("Get Specific Record")
 
-  record_input =
-    base_input
-    |> InputRequest.with_record_id(config[:crm][:record_id])
-
   TestHelper.print_result(
     "Get record #{config[:crm][:record_id]}",
-    Records.get_record(record_input)
+    Records.get_record(base_input, to_string(config[:crm][:record_id]))
   )
 end
 
@@ -117,25 +120,23 @@ TestHelper.section("Create Record")
 
 create_input =
   base_input
-  |> InputRequest.with_body(%{
-    "data" => [
-      %{
-        "Last_Name" => "Test User #{:rand.uniform(10000)}",
-        "Company" => "Test Company",
-        "Email" => "test#{:rand.uniform(10000)}@example.com"
-      }
-    ]
-  })
+  |> InputRequest.with_body([
+    %{
+      "Last_Name" => "Test User #{:rand.uniform(10000)}",
+      "Company" => "Test Company",
+      "Email" => "test#{:rand.uniform(10000)}@example.com"
+    }
+  ])
 
-case TestHelper.print_result("Create test #{config[:crm][:module]}", Records.create_records(create_input)) do
+case TestHelper.print_result("Create test #{config[:crm][:module]}", Records.insert_records(create_input)) do
   {:ok, %{"data" => [%{"details" => %{"id" => record_id}} | _]}} ->
     TestHelper.section("Delete Created Record")
 
     delete_input =
       base_input
-      |> InputRequest.with_record_id(record_id)
+      |> InputRequest.with_query_params(%{"ids" => record_id})
 
-    TestHelper.print_result("Delete record #{record_id}", Records.delete_record(delete_input))
+    TestHelper.print_result("Delete record #{record_id}", Records.delete_records(delete_input))
 
   _ ->
     IO.puts("Skipping delete test - no record created")
@@ -156,7 +157,7 @@ request =
   |> ZohoAPI.Request.with_region(config[:region])
   |> ZohoAPI.Request.with_method(:get)
   |> ZohoAPI.Request.with_path(config[:crm][:module])
-  |> ZohoAPI.Request.with_params(%{"per_page" => 3})
+  |> ZohoAPI.Request.with_params(%{"per_page" => 3, "fields" => "Last_Name,Email,Company"})
 
 TestHelper.print_result("Client.send with retry", Client.send(request, client_input))
 
