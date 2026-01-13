@@ -44,6 +44,8 @@ defmodule ZohoAPI.Client do
         repo: nil
   """
 
+  require Logger
+
   alias ZohoAPI.InputRequest
   alias ZohoAPI.Modules.Token
   alias ZohoAPI.RateLimiter
@@ -178,8 +180,10 @@ defmodule ZohoAPI.Client do
   defp notify_token_refresh(callback, token) do
     callback.(token)
   rescue
-    # Don't fail the request if callback fails
-    _ -> :ok
+    e ->
+      # Don't fail the request if callback fails, but log for debugging
+      Logger.warning("Token refresh callback failed: #{Exception.message(e)}")
+      :ok
   end
 
   @api_type_to_service_map %{
