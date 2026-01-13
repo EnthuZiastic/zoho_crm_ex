@@ -146,6 +146,57 @@ defmodule ZohoAPI.RetryTest do
       assert result == {:ok, 200, %{"data" => "success"}}
       assert :counters.get(counter, 1) == 2
     end
+
+    test "429 with retry_after uses specified delay" do
+      # This test verifies that retry_after is extracted from body
+      # We can't easily verify the exact delay without timing, but we can
+      # verify the retry happens
+      counter = :counters.new(1, [:atomics])
+
+      result =
+        Retry.with_retry(
+          fn ->
+            :counters.add(counter, 1, 1)
+            current = :counters.get(counter, 1)
+
+            if current < 2 do
+              # Response with retry_after in body
+              {:ok, 429, %{"error" => "rate limited", "retry_after" => 1}}
+            else
+              {:ok, 200, %{"data" => "success"}}
+            end
+          end,
+          max_retries: 3,
+          base_delay_ms: 100,
+          max_delay_ms: 5000
+        )
+
+      assert result == {:ok, 200, %{"data" => "success"}}
+      assert :counters.get(counter, 1) == 2
+    end
+
+    test "429 with nested retry_after in details" do
+      counter = :counters.new(1, [:atomics])
+
+      result =
+        Retry.with_retry(
+          fn ->
+            :counters.add(counter, 1, 1)
+            current = :counters.get(counter, 1)
+
+            if current < 2 do
+              {:ok, 429, %{"code" => "RATE_LIMIT", "details" => %{"retry_after" => 1}}}
+            else
+              {:ok, 200, %{"data" => "success"}}
+            end
+          end,
+          max_retries: 3,
+          base_delay_ms: 100
+        )
+
+      assert result == {:ok, 200, %{"data" => "success"}}
+      assert :counters.get(counter, 1) == 2
+    end
   end
 
   describe "calculate_delay/4" do

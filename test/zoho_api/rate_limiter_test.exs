@@ -1,9 +1,15 @@
 defmodule ZohoAPI.RateLimiterTest do
-  use ExUnit.Case, async: true
+  use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
 
   alias ZohoAPI.RateLimiter
+
+  setup do
+    # Reset warnings before each test so we can capture log output
+    RateLimiter.reset_warnings()
+    :ok
+  end
 
   describe "execute/2" do
     test "executes function directly when disabled" do

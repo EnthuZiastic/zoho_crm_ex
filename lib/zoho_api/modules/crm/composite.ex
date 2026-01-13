@@ -35,6 +35,43 @@ defmodule ZohoAPI.Modules.CRM.Composite do
         end
       end)
 
+  ## Cleanup Strategies
+
+  If you need transactional behavior, implement cleanup logic:
+
+      {:ok, %{"__composite_responses" => responses}} = Composite.execute(input)
+
+      # Partition by success/failure
+      {successes, failures} =
+        Enum.split_with(responses, fn r ->
+          r["status_code"] in 200..299
+        end)
+
+      # If any failed, clean up the successful creates
+      if length(failures) > 0 do
+        created_ids =
+          successes
+          |> Enum.filter(&(&1["body"]["data"]))
+          |> Enum.flat_map(fn r ->
+            Enum.map(r["body"]["data"], & &1["details"]["id"])
+          end)
+
+        if length(created_ids) > 0 do
+          # Delete the partially created records
+          cleanup_input = InputRequest.new(access_token)
+          |> InputRequest.with_body(%{
+            "__composite_requests" => [
+              %{
+                "method" => "DELETE",
+                "reference_id" => "cleanup",
+                "url" => "/crm/v8/Leads?ids=\#{Enum.join(created_ids, ",")}"
+              }
+            ]
+          })
+          Composite.execute(cleanup_input)
+        end
+      end
+
   ## Examples
 
       # Execute multiple operations in one call
@@ -62,6 +99,37 @@ defmodule ZohoAPI.Modules.CRM.Composite do
 
   alias ZohoAPI.InputRequest
   alias ZohoAPI.Request
+
+  @typedoc """
+  A single composite request item.
+
+  ## Required Fields
+
+    - `"method"` - HTTP method: "GET", "POST", "PUT", or "DELETE"
+    - `"reference_id"` - Unique identifier for this request
+    - `"url"` - API endpoint URL (e.g., "/crm/v8/Leads")
+
+  ## Optional Fields
+
+    - `"body"` - Request body for POST/PUT requests
+  """
+  @type composite_request :: %{
+          required(String.t()) => String.t() | map(),
+          optional(String.t()) => any()
+        }
+
+  @typedoc """
+  A composite response item.
+
+  ## Fields
+
+    - `"status_code"` - HTTP status code for this sub-request
+    - `"reference_id"` - The reference_id from the corresponding request
+    - `"body"` - Response body
+  """
+  @type composite_response :: %{
+          String.t() => integer() | String.t() | map()
+        }
 
   @doc """
   Executes multiple API requests in a single call.
