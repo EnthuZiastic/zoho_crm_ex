@@ -33,6 +33,7 @@ defmodule ZohoAPI.Modules.WorkDrive.Files do
 
   alias ZohoAPI.InputRequest
   alias ZohoAPI.Request
+  alias ZohoAPI.Validation
 
   @mime_types %{
     ".pdf" => "application/pdf",
@@ -75,10 +76,12 @@ defmodule ZohoAPI.Modules.WorkDrive.Files do
   """
   @spec list_files(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def list_files(%InputRequest{} = r, folder_id) do
-    construct_request(r)
-    |> Request.with_path("files/#{folder_id}/files")
-    |> Request.with_method(:get)
-    |> Request.send()
+    with :ok <- Validation.validate_id(folder_id) do
+      construct_request(r)
+      |> Request.with_path("files/#{folder_id}/files")
+      |> Request.with_method(:get)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -91,10 +94,12 @@ defmodule ZohoAPI.Modules.WorkDrive.Files do
   """
   @spec get_file(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def get_file(%InputRequest{} = r, file_id) do
-    construct_request(r)
-    |> Request.with_path("files/#{file_id}")
-    |> Request.with_method(:get)
-    |> Request.send()
+    with :ok <- Validation.validate_id(file_id) do
+      construct_request(r)
+      |> Request.with_path("files/#{file_id}")
+      |> Request.with_method(:get)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -111,10 +116,12 @@ defmodule ZohoAPI.Modules.WorkDrive.Files do
   """
   @spec download_file(InputRequest.t(), String.t()) :: {:ok, binary()} | {:error, any()}
   def download_file(%InputRequest{} = r, file_id) do
-    construct_request(r)
-    |> Request.with_path("download/#{file_id}")
-    |> Request.with_method(:get)
-    |> Request.send()
+    with :ok <- Validation.validate_id(file_id) do
+      construct_request(r)
+      |> Request.with_path("download/#{file_id}")
+      |> Request.with_method(:get)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -132,7 +139,8 @@ defmodule ZohoAPI.Modules.WorkDrive.Files do
   """
   @spec upload_file(InputRequest.t(), String.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def upload_file(%InputRequest{} = r, folder_id, file_name) do
-    with :ok <- validate_file_name(file_name) do
+    with :ok <- Validation.validate_id(folder_id),
+         :ok <- validate_file_name(file_name) do
       content_type = mime_type(file_name)
 
       Request.new("workdrive")
@@ -188,11 +196,13 @@ defmodule ZohoAPI.Modules.WorkDrive.Files do
   """
   @spec rename_file(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def rename_file(%InputRequest{} = r, file_id) do
-    construct_request(r)
-    |> Request.with_path("files/#{file_id}")
-    |> Request.with_method(:patch)
-    |> Request.with_body(r.body)
-    |> Request.send()
+    with :ok <- Validation.validate_id(file_id) do
+      construct_request(r)
+      |> Request.with_path("files/#{file_id}")
+      |> Request.with_method(:patch)
+      |> Request.with_body(r.body)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -214,11 +224,13 @@ defmodule ZohoAPI.Modules.WorkDrive.Files do
   """
   @spec move_file(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def move_file(%InputRequest{} = r, file_id) do
-    construct_request(r)
-    |> Request.with_path("files/#{file_id}")
-    |> Request.with_method(:patch)
-    |> Request.with_body(r.body)
-    |> Request.send()
+    with :ok <- Validation.validate_id(file_id) do
+      construct_request(r)
+      |> Request.with_path("files/#{file_id}")
+      |> Request.with_method(:patch)
+      |> Request.with_body(r.body)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -240,11 +252,13 @@ defmodule ZohoAPI.Modules.WorkDrive.Files do
   """
   @spec copy_file(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def copy_file(%InputRequest{} = r, file_id) do
-    construct_request(r)
-    |> Request.with_path("files/#{file_id}/copy")
-    |> Request.with_method(:post)
-    |> Request.with_body(r.body)
-    |> Request.send()
+    with :ok <- Validation.validate_id(file_id) do
+      construct_request(r)
+      |> Request.with_path("files/#{file_id}/copy")
+      |> Request.with_method(:post)
+      |> Request.with_body(r.body)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -257,10 +271,12 @@ defmodule ZohoAPI.Modules.WorkDrive.Files do
   """
   @spec delete_file(InputRequest.t(), String.t()) :: {:ok, any()} | {:error, any()}
   def delete_file(%InputRequest{} = r, file_id) do
-    construct_request(r)
-    |> Request.with_path("files/#{file_id}")
-    |> Request.with_method(:delete)
-    |> Request.send()
+    with :ok <- Validation.validate_id(file_id) do
+      construct_request(r)
+      |> Request.with_path("files/#{file_id}")
+      |> Request.with_method(:delete)
+      |> Request.send()
+    end
   end
 
   @doc """

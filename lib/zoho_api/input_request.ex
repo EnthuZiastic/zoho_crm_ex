@@ -4,7 +4,7 @@ defmodule ZohoAPI.InputRequest do
 
   This struct is used as the primary input for all Zoho API operations.
   It encapsulates the access token, module name, query parameters, body,
-  and org_id (required for Zoho Desk API).
+  org_id (required for Zoho Desk API), and region.
 
   ## Examples
 
@@ -22,23 +22,31 @@ defmodule ZohoAPI.InputRequest do
       # For Zoho Desk (requires org_id)
       input = InputRequest.new("access_token")
       |> InputRequest.with_org_id("org_123")
+
+      # With specific region (default is :in for India)
+      input = InputRequest.new("access_token")
+      |> InputRequest.with_region(:eu)
   """
 
+  alias ZohoAPI.Regions
+
   @enforce_keys [:access_token]
-  defstruct [:module_api_name, :body, :query_params, :access_token, :org_id]
+  defstruct [:module_api_name, :body, :query_params, :access_token, :org_id, region: :in]
 
   @type access_token :: String.t()
   @type module_api_name :: String.t() | nil
   @type query_params :: map()
   @type body :: map() | list() | String.t()
   @type org_id :: String.t() | nil
+  @type region :: :in | :com | :eu | :au | :jp | :uk | :ca | :sa
 
   @type t() :: %__MODULE__{
           access_token: String.t(),
           module_api_name: module_api_name(),
           query_params: map(),
           body: body(),
-          org_id: org_id()
+          org_id: org_id(),
+          region: region()
         }
 
   @doc """
@@ -63,7 +71,8 @@ defmodule ZohoAPI.InputRequest do
       body: body,
       module_api_name: module_api_name,
       query_params: query_params,
-      org_id: nil
+      org_id: nil,
+      region: :in
     }
   end
 
@@ -108,5 +117,32 @@ defmodule ZohoAPI.InputRequest do
   @spec with_org_id(t(), String.t()) :: t()
   def with_org_id(%__MODULE__{} = ir, org_id) when is_binary(org_id) do
     %{ir | org_id: org_id}
+  end
+
+  @doc """
+  Sets the Zoho region.
+
+  ## Supported Regions
+
+    - `:in` - India (default)
+    - `:com` - United States
+    - `:eu` - Europe
+    - `:au` - Australia
+    - `:jp` - Japan
+    - `:uk` - United Kingdom
+    - `:ca` - Canada
+    - `:sa` - Saudi Arabia
+
+  ## Examples
+
+      iex> InputRequest.new("token") |> InputRequest.with_region(:eu)
+      %InputRequest{region: :eu, ...}
+
+  Raises `ArgumentError` if an invalid region is provided.
+  """
+  @spec with_region(t(), region()) :: t()
+  def with_region(%__MODULE__{} = ir, region) do
+    Regions.validate!(region)
+    %{ir | region: region}
   end
 end

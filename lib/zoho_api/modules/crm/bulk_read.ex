@@ -41,6 +41,7 @@ defmodule ZohoAPI.Modules.CRM.BulkRead do
 
   alias ZohoAPI.InputRequest
   alias ZohoAPI.Request
+  alias ZohoAPI.Validation
 
   @doc """
   Creates a bulk read job.
@@ -115,10 +116,12 @@ defmodule ZohoAPI.Modules.CRM.BulkRead do
   """
   @spec get_job_status(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def get_job_status(%InputRequest{} = r, job_id) do
-    Request.new("bulk")
-    |> Request.set_access_token(r.access_token)
-    |> Request.with_path("read/#{job_id}")
-    |> Request.with_method(:get)
-    |> Request.send()
+    with :ok <- Validation.validate_id(job_id) do
+      Request.new("bulk")
+      |> Request.set_access_token(r.access_token)
+      |> Request.with_path("read/#{job_id}")
+      |> Request.with_method(:get)
+      |> Request.send()
+    end
   end
 end
