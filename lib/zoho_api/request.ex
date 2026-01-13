@@ -35,6 +35,54 @@ defmodule ZohoAPI.Request do
     "Content-Type" => "application/json"
   }
 
+  # Region-specific base URLs for different Zoho services
+  @region_urls %{
+    # Zoho APIs (CRM, Bookings, WorkDrive, Bulk, Composite)
+    zohoapis: %{
+      in: "https://www.zohoapis.in",
+      com: "https://www.zohoapis.com",
+      eu: "https://www.zohoapis.eu",
+      au: "https://www.zohoapis.com.au",
+      jp: "https://www.zohoapis.jp",
+      uk: "https://www.zohoapis.uk",
+      ca: "https://www.zohoapis.ca",
+      sa: "https://www.zohoapis.sa"
+    },
+    # Zoho Recruit
+    recruit: %{
+      in: "https://recruit.zoho.in",
+      com: "https://recruit.zoho.com",
+      eu: "https://recruit.zoho.eu",
+      au: "https://recruit.zoho.com.au",
+      jp: "https://recruit.zoho.jp",
+      uk: "https://recruit.zoho.uk",
+      ca: "https://recruit.zohocloud.ca",
+      sa: "https://recruit.zoho.sa"
+    },
+    # Zoho Desk
+    desk: %{
+      in: "https://desk.zoho.in",
+      com: "https://desk.zoho.com",
+      eu: "https://desk.zoho.eu",
+      au: "https://desk.zoho.com.au",
+      jp: "https://desk.zoho.jp",
+      uk: "https://desk.zoho.uk",
+      ca: "https://desk.zohocloud.ca",
+      sa: "https://desk.zoho.sa"
+    },
+    # Zoho Projects
+    projects: %{
+      in: "https://projectsapi.zoho.in",
+      com: "https://projectsapi.zoho.com",
+      eu: "https://projectsapi.zoho.eu",
+      au: "https://projectsapi.zoho.com.au",
+      jp: "https://projectsapi.zoho.jp",
+      uk: "https://projectsapi.zoho.uk",
+      ca: "https://projectsapi.zohocloud.ca",
+      sa: "https://projectsapi.zoho.sa"
+    }
+  }
+
   @enforce_keys [:api_type]
   defstruct [
     :path,
@@ -44,8 +92,11 @@ defmodule ZohoAPI.Request do
     body: %{},
     headers: @default_headers,
     base_url: @base_url,
-    version: @version
+    version: @version,
+    region: :in
   ]
+
+  @type region :: :in | :com | :eu | :au | :jp | :uk | :ca | :sa
 
   @type t :: %__MODULE__{
           path: String.t() | nil,
@@ -55,7 +106,8 @@ defmodule ZohoAPI.Request do
           body: map() | String.t(),
           headers: map(),
           base_url: String.t(),
-          version: String.t()
+          version: String.t(),
+          region: region()
         }
 
   @doc """
@@ -95,6 +147,26 @@ defmodule ZohoAPI.Request do
   end
 
   @doc """
+  Sets the Zoho region.
+
+  ## Supported Regions
+
+    - `:in` - India (default)
+    - `:com` - United States
+    - `:eu` - Europe
+    - `:au` - Australia
+    - `:jp` - Japan
+    - `:uk` - United Kingdom
+    - `:ca` - Canada
+    - `:sa` - Saudi Arabia
+  """
+  @spec with_region(t(), region()) :: t()
+  def with_region(%__MODULE__{} = r, region)
+      when region in [:in, :com, :eu, :au, :jp, :uk, :ca, :sa] do
+    %{r | region: region}
+  end
+
+  @doc """
   Sets the HTTP method.
   """
   @spec with_method(t(), atom()) :: t()
@@ -115,12 +187,7 @@ defmodule ZohoAPI.Request do
   """
   @spec set_headers(t(), map()) :: t()
   def set_headers(%__MODULE__{} = r, headers) when is_map(headers) do
-    merged_headers =
-      @default_headers
-      |> Map.merge(r.headers)
-      |> Map.merge(headers)
-
-    %{r | headers: merged_headers}
+    %{r | headers: Map.merge(r.headers, headers)}
   end
 
   @doc """
@@ -178,18 +245,38 @@ defmodule ZohoAPI.Request do
   @spec send(t()) :: {:ok, any()} | {:error, any()}
   def send(%__MODULE__{} = r) do
     url = construct_url(r)
-    body = encode_body(r.body)
     headers = Map.to_list(r.headers)
 
-    HTTPClient.impl().request(r.method, url, body, headers)
-    |> handle_response()
+    case encode_body(r.body) do
+      {:ok, body} ->
+        HTTPClient.impl().request(r.method, url, body, headers)
+        |> handle_response()
+
+      {:error, _} = error ->
+        error
+    end
   end
 
-  defp encode_body(body) when is_map(body), do: Jason.encode!(body)
-  defp encode_body(body), do: body
+  defp encode_body(body) when is_map(body) do
+    case Jason.encode(body) do
+      {:ok, encoded} -> {:ok, encoded}
+      {:error, reason} -> {:error, "Failed to encode request body: #{inspect(reason)}"}
+    end
+  end
+
+  defp encode_body(body) when is_list(body) do
+    case Jason.encode(body) do
+      {:ok, encoded} -> {:ok, encoded}
+      {:error, reason} -> {:error, "Failed to encode request body: #{inspect(reason)}"}
+    end
+  end
+
+  defp encode_body(body) when is_binary(body), do: {:ok, body}
+  defp encode_body(nil), do: {:ok, ""}
+  defp encode_body(body), do: {:ok, to_string(body)}
 
   defp handle_response({:ok, %HTTPoison.Response{body: body, status_code: status_code}})
-       when status_code in [200, 201, 202, 203, 204, 205, 206] do
+       when status_code in 200..299 do
     {:ok, json_or_value(body)}
   end
 
@@ -213,23 +300,26 @@ defmodule ZohoAPI.Request do
   # CRM API
   @doc false
   def construct_url(%__MODULE__{api_type: "crm"} = r) do
-    base = "#{r.base_url}/crm/#{r.version}/#{r.path}"
+    base_url = get_region_url(:zohoapis, r.region)
+    base = "#{base_url}/crm/#{r.version}/#{r.path}"
     append_params(base, r.params)
   end
 
   # Recruit API
   def construct_url(%__MODULE__{api_type: "recruit"} = r) do
-    base = "https://recruit.zoho.in/recruit/#{r.version}/#{r.path}"
+    base_url = get_region_url(:recruit, r.region)
+    base = "#{base_url}/recruit/#{r.version}/#{r.path}"
     append_params(base, r.params)
   end
 
   # Bookings API
   def construct_url(%__MODULE__{api_type: "bookings"} = r) do
-    base = "#{r.base_url}/bookings/#{r.version}/#{r.path}"
+    base_url = get_region_url(:zohoapis, r.region)
+    base = "#{base_url}/bookings/#{r.version}/#{r.path}"
     append_params(base, r.params)
   end
 
-  # OAuth API
+  # OAuth API (uses base_url which can be overridden by Token module)
   def construct_url(%__MODULE__{api_type: "oauth"} = r) do
     base = "#{r.base_url}/oauth/#{r.version}/#{r.path}"
     append_params(base, r.params)
@@ -237,32 +327,43 @@ defmodule ZohoAPI.Request do
 
   # Projects/Portal API
   def construct_url(%__MODULE__{api_type: "portal"} = r) do
-    base = "#{r.base_url}#{r.path}"
+    base_url = get_region_url(:projects, r.region)
+    base = "#{base_url}#{r.path}"
     append_params(base, r.params)
   end
 
   # Desk API
   def construct_url(%__MODULE__{api_type: "desk"} = r) do
-    base = "https://desk.zoho.in/api/#{r.version}/#{r.path}"
+    base_url = get_region_url(:desk, r.region)
+    base = "#{base_url}/api/#{r.version}/#{r.path}"
     append_params(base, r.params)
   end
 
   # WorkDrive API
   def construct_url(%__MODULE__{api_type: "workdrive"} = r) do
-    base = "https://www.zohoapis.in/workdrive/api/#{r.version}/#{r.path}"
+    base_url = get_region_url(:zohoapis, r.region)
+    base = "#{base_url}/workdrive/api/#{r.version}/#{r.path}"
     append_params(base, r.params)
   end
 
   # Bulk API (Bulk Read/Write)
   def construct_url(%__MODULE__{api_type: "bulk"} = r) do
-    base = "#{r.base_url}/crm/bulk/#{r.version}/#{r.path}"
+    base_url = get_region_url(:zohoapis, r.region)
+    base = "#{base_url}/crm/bulk/#{r.version}/#{r.path}"
     append_params(base, r.params)
   end
 
   # Composite API
   def construct_url(%__MODULE__{api_type: "composite"} = r) do
-    base = "#{r.base_url}/crm/#{r.version}/__composite_requests"
+    base_url = get_region_url(:zohoapis, r.region)
+    base = "#{base_url}/crm/#{r.version}/__composite_requests"
     append_params(base, r.params)
+  end
+
+  defp get_region_url(service, region) do
+    @region_urls
+    |> Map.get(service, @region_urls[:zohoapis])
+    |> Map.get(region, @region_urls[:zohoapis][:in])
   end
 
   defp append_params(base, params) when map_size(params) == 0, do: base

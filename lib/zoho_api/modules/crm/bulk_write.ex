@@ -66,17 +66,39 @@ defmodule ZohoAPI.Modules.CRM.BulkWrite do
     - `{:ok, %{"status" => "success", "details" => %{"file_id" => "..."}}}` on success
     - `{:error, reason}` on failure
   """
+  # Maximum file size for bulk write uploads (25MB)
+  @max_file_size 25 * 1024 * 1024
+
   @spec upload_file(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def upload_file(%InputRequest{} = r, module_name) do
-    Request.new("bulk")
-    |> Request.set_access_token(r.access_token)
-    |> Request.with_path("write/file")
-    |> Request.with_params(%{"module" => module_name})
-    |> Request.set_headers(%{"Content-Type" => "text/csv"})
-    |> Request.with_body(r.body)
-    |> Request.with_method(:post)
-    |> Request.send()
+    with :ok <- validate_file_size(r.body) do
+      Request.new("bulk")
+      |> Request.set_access_token(r.access_token)
+      |> Request.with_path("write/file")
+      |> Request.with_params(%{"module" => module_name})
+      |> Request.set_headers(%{"Content-Type" => "text/csv"})
+      |> Request.with_body(r.body)
+      |> Request.with_method(:post)
+      |> Request.send()
+    end
   end
+
+  defp validate_file_size(body) when is_binary(body) do
+    size = byte_size(body)
+
+    if size > @max_file_size do
+      {:error,
+       "File size #{format_size(size)} exceeds maximum allowed size of #{format_size(@max_file_size)}"}
+    else
+      :ok
+    end
+  end
+
+  defp validate_file_size(_), do: :ok
+
+  defp format_size(bytes) when bytes < 1024, do: "#{bytes} B"
+  defp format_size(bytes) when bytes < 1024 * 1024, do: "#{Float.round(bytes / 1024, 1)} KB"
+  defp format_size(bytes), do: "#{Float.round(bytes / (1024 * 1024), 1)} MB"
 
   @doc """
   Creates a bulk write job.

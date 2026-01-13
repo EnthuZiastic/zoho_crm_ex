@@ -61,5 +61,39 @@ defmodule ZohoAPI.ConfigTest do
         Config.get_config(:workdrive)
       end
     end
+
+    test "raises error when env var is not set" do
+      Application.put_env(:zoho_api, :crm,
+        client_id: {:system, "ZOHO_TEST_MISSING_ENV_VAR"},
+        client_secret: "secret"
+      )
+
+      # Ensure the env var doesn't exist
+      System.delete_env("ZOHO_TEST_MISSING_ENV_VAR")
+
+      assert_raise ArgumentError,
+                   ~r/Environment variable ZOHO_TEST_MISSING_ENV_VAR is not set/,
+                   fn ->
+                     Config.get_config(:crm)
+                   end
+
+      Application.delete_env(:zoho_api, :crm)
+    end
+
+    test "raises error when env var is empty" do
+      Application.put_env(:zoho_api, :crm,
+        client_id: {:system, "ZOHO_TEST_EMPTY_ENV_VAR"},
+        client_secret: "secret"
+      )
+
+      System.put_env("ZOHO_TEST_EMPTY_ENV_VAR", "")
+
+      assert_raise ArgumentError, ~r/Environment variable ZOHO_TEST_EMPTY_ENV_VAR is empty/, fn ->
+        Config.get_config(:crm)
+      end
+
+      System.delete_env("ZOHO_TEST_EMPTY_ENV_VAR")
+      Application.delete_env(:zoho_api, :crm)
+    end
   end
 end

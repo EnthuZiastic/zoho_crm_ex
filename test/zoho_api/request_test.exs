@@ -96,4 +96,89 @@ defmodule ZohoAPI.RequestTest do
       assert request.headers["orgId"] == "org_123"
     end
   end
+
+  describe "with_region/2" do
+    test "sets region and affects URL construction" do
+      url =
+        Request.new("crm")
+        |> Request.with_path("Leads")
+        |> Request.with_region(:com)
+        |> Request.construct_url()
+
+      assert url == "https://www.zohoapis.com/crm/v8/Leads"
+    end
+
+    test "sets EU region for Desk API" do
+      url =
+        Request.new("desk")
+        |> Request.with_version("v1")
+        |> Request.with_path("tickets")
+        |> Request.with_region(:eu)
+        |> Request.construct_url()
+
+      assert url == "https://desk.zoho.eu/api/v1/tickets"
+    end
+
+    test "sets AU region for Recruit API" do
+      url =
+        Request.new("recruit")
+        |> Request.with_version("v2")
+        |> Request.with_path("Candidates")
+        |> Request.with_region(:au)
+        |> Request.construct_url()
+
+      assert url == "https://recruit.zoho.com.au/recruit/v2/Candidates"
+    end
+
+    test "sets JP region for WorkDrive API" do
+      url =
+        Request.new("workdrive")
+        |> Request.with_version("v1")
+        |> Request.with_path("files")
+        |> Request.with_region(:jp)
+        |> Request.construct_url()
+
+      assert url == "https://www.zohoapis.jp/workdrive/api/v1/files"
+    end
+  end
+
+  describe "send/1 error handling" do
+    import Mox
+
+    setup :verify_on_exit!
+
+    test "handles HTTP client errors" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers ->
+        {:error, %HTTPoison.Error{reason: :timeout}}
+      end)
+
+      result =
+        Request.new()
+        |> Request.with_path("Leads")
+        |> Request.with_method(:get)
+        |> Request.set_access_token("token")
+        |> Request.send()
+
+      assert {:error, :timeout} = result
+    end
+
+    test "handles non-2xx status codes as errors" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 401,
+           body: Jason.encode!(%{"code" => "INVALID_TOKEN", "message" => "Token expired"})
+         }}
+      end)
+
+      result =
+        Request.new()
+        |> Request.with_path("Leads")
+        |> Request.with_method(:get)
+        |> Request.set_access_token("token")
+        |> Request.send()
+
+      assert {:error, %{"code" => "INVALID_TOKEN"}} = result
+    end
+  end
 end

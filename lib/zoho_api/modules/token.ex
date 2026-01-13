@@ -78,19 +78,22 @@ defmodule ZohoAPI.Modules.Token do
     cfg = Config.get_config(service)
     base_url = Map.get(@region_urls, region, @region_urls[:in])
 
-    params = %{
-      client_id: cfg.client_id,
-      client_secret: cfg.client_secret,
-      refresh_token: refresh_token,
-      grant_type: "refresh_token"
-    }
+    # OAuth credentials sent as form-encoded body for security (not in URL query params)
+    body =
+      URI.encode_query(%{
+        client_id: cfg.client_id,
+        client_secret: cfg.client_secret,
+        refresh_token: refresh_token,
+        grant_type: "refresh_token"
+      })
 
     Request.new("oauth")
     |> Request.set_base_url(base_url)
     |> Request.with_version("v2")
     |> Request.with_path("token")
     |> Request.with_method(:post)
-    |> Request.with_params(params)
+    |> Request.set_headers(%{"Content-Type" => "application/x-www-form-urlencoded"})
+    |> Request.with_body(body)
     |> Request.send()
   end
 

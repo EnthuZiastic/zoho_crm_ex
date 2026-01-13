@@ -132,18 +132,42 @@ defmodule ZohoAPI.Modules.WorkDrive.Files do
   """
   @spec upload_file(InputRequest.t(), String.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def upload_file(%InputRequest{} = r, folder_id, file_name) do
-    content_type = mime_type(file_name)
+    with :ok <- validate_file_name(file_name) do
+      content_type = mime_type(file_name)
 
-    Request.new("workdrive")
-    |> Request.with_version("v1")
-    |> Request.set_access_token(r.access_token)
-    |> Request.with_path("upload")
-    |> Request.with_params(%{parent_id: folder_id, filename: file_name})
-    |> Request.set_headers(%{"Content-Type" => content_type})
-    |> Request.with_body(r.body)
-    |> Request.with_method(:post)
-    |> Request.send()
+      Request.new("workdrive")
+      |> Request.with_version("v1")
+      |> Request.set_access_token(r.access_token)
+      |> Request.with_path("upload")
+      |> Request.with_params(%{parent_id: folder_id, filename: file_name})
+      |> Request.set_headers(%{"Content-Type" => content_type})
+      |> Request.with_body(r.body)
+      |> Request.with_method(:post)
+      |> Request.send()
+    end
   end
+
+  # Validate file name to prevent path traversal attacks
+  defp validate_file_name(file_name) when is_binary(file_name) do
+    cond do
+      String.contains?(file_name, "..") ->
+        {:error, "Invalid file name: path traversal detected"}
+
+      String.contains?(file_name, "/") ->
+        {:error, "Invalid file name: cannot contain path separators"}
+
+      String.contains?(file_name, "\\") ->
+        {:error, "Invalid file name: cannot contain path separators"}
+
+      String.trim(file_name) == "" ->
+        {:error, "File name cannot be empty"}
+
+      true ->
+        :ok
+    end
+  end
+
+  defp validate_file_name(_), do: {:error, "File name must be a string"}
 
   @doc """
   Renames a file.

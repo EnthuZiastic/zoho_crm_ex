@@ -54,6 +54,41 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
     end
   end
 
+  describe "execute/1 validation" do
+    test "returns error when more than 5 requests are provided" do
+      requests =
+        for i <- 1..6 do
+          %{"method" => "GET", "reference_id" => "ref_#{i}", "url" => "/crm/v8/Leads"}
+        end
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{"__composite_requests" => requests})
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "maximum of 5 requests"
+      assert message =~ "got 6"
+    end
+
+    test "returns error when no requests are provided" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{"__composite_requests" => []})
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "At least one composite request is required"
+    end
+
+    test "returns error when body doesn't contain __composite_requests" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{"invalid" => "body"})
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "must contain __composite_requests array"
+    end
+  end
+
   describe "build_request/4" do
     test "builds GET request" do
       request = Composite.build_request(:get, "ref_1", "/crm/v8/Leads")
