@@ -1,4 +1,8 @@
 defmodule ZohoAPI.RateLimiter do
+  # Suppress compiler warnings for optional RateLimiter dependency
+  @compile {:no_warn_undefined, {RateLimiter, :enqueue, 4}}
+  @compile {:no_warn_undefined, {RateLimiter.Config, :new, 4}}
+
   @moduledoc """
   Rate limiter integration for Zoho API requests.
 
@@ -176,23 +180,23 @@ defmodule ZohoAPI.RateLimiter do
   defp execute_with_rate_limiter(request_fn, config) do
     # The rate_limiter library expects {module, function, args} tuple
     # We wrap our anonymous function for compatibility
-    # Using apply/3 to avoid compile-time warnings when RateLimiter is not installed
     rate_limiter_config =
-      apply(Module.concat(RateLimiter, Config), :new, [
+      RateLimiter.Config.new(
         config.key,
         config.request_count,
         config.time_window,
-        [safety_margin: config.safety_margin, max_retries: config.max_retries]
-      ])
+        safety_margin: config.safety_margin,
+        max_retries: config.max_retries
+      )
 
     # Enqueue and wait for execution
     # Note: This is a blocking call that waits for the rate limiter to execute
-    case apply(RateLimiter, :enqueue, [
+    case RateLimiter.enqueue(
            config.repo,
            config.key,
            {__MODULE__, :execute_wrapper, [request_fn]},
            rate_limiter_config
-         ]) do
+         ) do
       {:ok, result} -> result
       {:error, reason} -> {:error, {:rate_limiter_error, reason}}
     end
