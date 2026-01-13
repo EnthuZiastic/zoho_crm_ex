@@ -1,4 +1,4 @@
-Mox.defmock(ZohoCrm.HTTPClientMock, for: ZohoCrm.HTTPClient)
-Application.put_env(:zoho_crm, :http_client, ZohoCrm.HTTPClientMock)
+Mox.defmock(ZohoAPI.HTTPClientMock, for: ZohoAPI.HTTPClient)
+Application.put_env(:zoho_api, :http_client, ZohoAPI.HTTPClientMock)
 
 ExUnit.start()

@@ -10,18 +10,18 @@ use Mix.Config
 
 # You can configure for your application as:
 #
-#     config :zoho_crm, key: :value
+#     config :zoho_api, key: :value
 #
 # And access this configuration in your application as:
 #
-#     Application.get_env(:zoho_crm, :key)
+#     Application.get_env(:zoho_api, :key)
 #
 # Or configure a 3rd-party app:
 #
 #     config :logger, level: :info
 #
 
-config :zoho_crm, :zoho,
+config :zoho_api, :zoho,
   client_id: {:system, "ZOHO_CLIENT_ID"},
   client_secret: {:system, "ZOHO_CLIENT_SECRET"}
 
