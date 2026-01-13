@@ -13,6 +13,28 @@ defmodule ZohoAPI.Modules.CRM.Composite do
     - Each sub-request can target different modules
     - Responses are returned in the same order as requests
 
+  ## Transaction Semantics
+
+  **Important:** Composite API requests are **NOT atomic/transactional**.
+
+    - Each sub-request is executed independently
+    - If request 3 of 5 fails, requests 1-2 may have already succeeded
+    - Failed requests do not roll back previously successful requests
+    - Each response in `__composite_responses` includes its own status code
+    - Later requests **cannot** reference data from earlier responses
+
+  Always check individual response status codes:
+
+      {:ok, %{"__composite_responses" => responses}} = Composite.execute(input)
+
+      Enum.each(responses, fn response ->
+        case response["status_code"] do
+          200 -> # Success
+          201 -> # Created
+          code -> # Handle error for this specific request
+        end
+      end)
+
   ## Examples
 
       # Execute multiple operations in one call

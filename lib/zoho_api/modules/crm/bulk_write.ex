@@ -10,6 +10,12 @@ defmodule ZohoAPI.Modules.CRM.BulkWrite do
   3. Poll for job completion
   4. Check results
 
+  ## Limits
+
+    - **Maximum file size:** 25 MB
+    - **Maximum records per job:** 25,000
+    - Files exceeding 25 MB will be rejected with an error
+
   ## Supported Operations
 
     - `insert` - Insert new records

@@ -211,8 +211,8 @@ defmodule ZohoAPI.Request do
   For bulk operations that may take longer to connect, increase this value.
   See also `with_recv_timeout/2` for response timeout.
 
-  **Note:** Timeout values must be positive integers (> 0). The guard clause
-  ensures this, so passing 0 or negative values will raise a FunctionClauseError.
+  **Note:** Timeout values must be positive integers (> 0). Invalid values
+  will raise an `ArgumentError` with a descriptive message.
 
   ## Examples
 
@@ -225,6 +225,11 @@ defmodule ZohoAPI.Request do
     %{r | timeout: timeout}
   end
 
+  def with_timeout(%__MODULE__{}, timeout) do
+    raise ArgumentError,
+          "timeout must be a positive integer, got: #{inspect(timeout)}"
+  end
+
   @doc """
   Sets the receive timeout in milliseconds.
 
@@ -234,8 +239,8 @@ defmodule ZohoAPI.Request do
   For bulk operations that return large amounts of data, increase this value.
   See also `with_timeout/2` for connection timeout.
 
-  **Note:** Timeout values must be positive integers (> 0). The guard clause
-  ensures this, so passing 0 or negative values will raise a FunctionClauseError.
+  **Note:** Timeout values must be positive integers (> 0). Invalid values
+  will raise an `ArgumentError` with a descriptive message.
 
   ## Examples
 
@@ -251,6 +256,11 @@ defmodule ZohoAPI.Request do
   @spec with_recv_timeout(t(), pos_integer()) :: t()
   def with_recv_timeout(%__MODULE__{} = r, timeout) when is_integer(timeout) and timeout > 0 do
     %{r | recv_timeout: timeout}
+  end
+
+  def with_recv_timeout(%__MODULE__{}, timeout) do
+    raise ArgumentError,
+          "recv_timeout must be a positive integer, got: #{inspect(timeout)}"
   end
 
   @doc """
@@ -413,6 +423,9 @@ defmodule ZohoAPI.Request do
   end
 
   # Composite API
+  # Note: The `path` field is intentionally ignored for composite requests.
+  # The endpoint is always `/__composite_requests` - individual request paths
+  # are specified in the request body's `url` field for each sub-request.
   def construct_url(%__MODULE__{api_type: "composite"} = r) do
     base_url = get_region_url(:zohoapis, r.region)
     base = "#{base_url}/crm/#{r.version}/__composite_requests"

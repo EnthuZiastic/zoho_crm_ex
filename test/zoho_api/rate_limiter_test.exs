@@ -1,6 +1,8 @@
 defmodule ZohoAPI.RateLimiterTest do
   use ExUnit.Case, async: true
 
+  import ExUnit.CaptureLog
+
   alias ZohoAPI.RateLimiter
 
   describe "execute/2" do
@@ -20,38 +22,48 @@ defmodule ZohoAPI.RateLimiterTest do
       assert :counters.get(counter, 1) == 1
     end
 
-    test "executes function directly when repo not configured" do
+    test "executes function directly when repo not configured and logs warning" do
       counter = :counters.new(1, [:atomics])
 
-      result =
-        RateLimiter.execute(
-          fn ->
-            :counters.add(counter, 1, 1)
-            {:ok, "success"}
-          end,
-          enabled: true,
-          repo: nil
-        )
+      log =
+        capture_log(fn ->
+          result =
+            RateLimiter.execute(
+              fn ->
+                :counters.add(counter, 1, 1)
+                {:ok, "success"}
+              end,
+              enabled: true,
+              repo: nil
+            )
 
-      assert result == {:ok, "success"}
+          assert result == {:ok, "success"}
+        end)
+
+      assert log =~ "enabled but no repo configured"
       assert :counters.get(counter, 1) == 1
     end
 
-    test "executes function directly when rate_limiter not available" do
+    test "executes function directly when rate_limiter not available and logs warning" do
       # RateLimiter library is not installed in test env
       counter = :counters.new(1, [:atomics])
 
-      result =
-        RateLimiter.execute(
-          fn ->
-            :counters.add(counter, 1, 1)
-            {:ok, "success"}
-          end,
-          enabled: true,
-          repo: SomeRepo
-        )
+      log =
+        capture_log(fn ->
+          result =
+            RateLimiter.execute(
+              fn ->
+                :counters.add(counter, 1, 1)
+                {:ok, "success"}
+              end,
+              enabled: true,
+              repo: SomeRepo
+            )
 
-      assert result == {:ok, "success"}
+          assert result == {:ok, "success"}
+        end)
+
+      assert log =~ "rate_limiter dependency not installed"
       assert :counters.get(counter, 1) == 1
     end
   end
