@@ -17,6 +17,14 @@ defmodule ZohoAPI.HTTPClient do
   ## Configuration
 
       config :zoho_api, :http_client, ZohoAPI.HTTPClientMock
+
+  ## Timeout Configuration
+
+  Default timeout is 30 seconds. Configure globally:
+
+      config :zoho_api, :http_timeout, 60_000
+
+  Or per-request using `Request.with_timeout/2`.
   """
 
   @doc """
@@ -28,6 +36,7 @@ defmodule ZohoAPI.HTTPClient do
     - `url` - The request URL
     - `body` - The request body (string)
     - `headers` - List of header tuples
+    - `options` - HTTPoison options (timeout, recv_timeout, etc.)
 
   ## Returns
 
@@ -38,7 +47,8 @@ defmodule ZohoAPI.HTTPClient do
               method :: atom(),
               url :: String.t(),
               body :: String.t(),
-              headers :: list()
+              headers :: list(),
+              options :: keyword()
             ) ::
               {:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Error.t()}
 

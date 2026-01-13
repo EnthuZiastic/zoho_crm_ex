@@ -35,6 +35,9 @@ mix test
 # Run a specific test file
 mix test test/zoho_api/modules/crm/records_test.exs
 
+# Run a specific test by line number
+mix test test/zoho_api/modules/crm/records_test.exs:12
+
 # Run tests with coverage
 mix test --cover
 ```
@@ -217,8 +220,22 @@ Application.put_env(:zoho_api, :http_client, ZohoAPI.HTTPClientMock)
 ```
 
 ```elixir
-# In tests
-expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, headers ->
-  {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"data" => []})}}
-end)
+# In test modules
+defmodule ZohoAPI.Modules.SomeTest do
+  use ExUnit.Case, async: true
+  import Mox
+
+  setup :verify_on_exit!
+
+  test "example" do
+    expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, headers ->
+      {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"data" => []})}}
+    end)
+    # ... test code
+  end
+end
 ```
+
+## Migration
+
+See [MIGRATION.md](MIGRATION.md) for upgrade instructions when moving between major versions.

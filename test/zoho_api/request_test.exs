@@ -75,6 +75,74 @@ defmodule ZohoAPI.RequestTest do
 
       assert url == "https://www.zohoapis.in/crm/v8/__composite_requests"
     end
+
+    test "constructs OAuth API URL" do
+      url =
+        Request.new("oauth")
+        |> Request.set_base_url("https://accounts.zoho.in")
+        |> Request.with_version("v2")
+        |> Request.with_path("token")
+        |> Request.construct_url()
+
+      assert url == "https://accounts.zoho.in/oauth/v2/token"
+    end
+
+    test "constructs Recruit API URL" do
+      url =
+        Request.new("recruit")
+        |> Request.with_version("v2")
+        |> Request.with_path("Candidates")
+        |> Request.construct_url()
+
+      assert url == "https://recruit.zoho.in/recruit/v2/Candidates"
+    end
+
+    test "constructs Bookings API URL" do
+      url =
+        Request.new("bookings")
+        |> Request.with_version("v1")
+        |> Request.with_path("json/availableslots")
+        |> Request.construct_url()
+
+      assert url == "https://www.zohoapis.in/bookings/v1/json/availableslots"
+    end
+
+    test "constructs Projects/Portal API URL" do
+      url =
+        Request.new("portal")
+        |> Request.with_path("/restapi/portal/123/projects")
+        |> Request.construct_url()
+
+      assert url == "https://projectsapi.zoho.in/restapi/portal/123/projects"
+    end
+
+    test "appends params with & when URL already has query string" do
+      url =
+        Request.new("crm")
+        |> Request.with_path("Leads?existing=true")
+        |> Request.with_params(%{page: 1})
+        |> Request.construct_url()
+
+      assert url == "https://www.zohoapis.in/crm/v8/Leads?existing=true&page=1"
+    end
+  end
+
+  describe "with_timeout/2" do
+    test "sets custom timeout" do
+      request =
+        Request.new()
+        |> Request.with_timeout(60_000)
+
+      assert request.timeout == 60_000
+    end
+
+    test "timeout is used in request" do
+      request =
+        Request.new()
+        |> Request.with_timeout(120_000)
+
+      assert request.timeout == 120_000
+    end
   end
 
   describe "set_access_token/2" do
@@ -148,7 +216,7 @@ defmodule ZohoAPI.RequestTest do
     setup :verify_on_exit!
 
     test "handles HTTP client errors" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
         {:error, %HTTPoison.Error{reason: :timeout}}
       end)
 
@@ -163,7 +231,7 @@ defmodule ZohoAPI.RequestTest do
     end
 
     test "handles non-2xx status codes as errors" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
         {:ok,
          %HTTPoison.Response{
            status_code: 401,

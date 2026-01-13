@@ -10,7 +10,7 @@ defmodule ZohoAPI.Modules.CRM.BulkReadTest do
 
   describe "create_job/1" do
     test "creates a bulk read job" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
         assert url =~ "crm/bulk/v8/read"
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
@@ -51,7 +51,7 @@ defmodule ZohoAPI.Modules.CRM.BulkReadTest do
 
   describe "get_job_status/2" do
     test "gets bulk read job status" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "crm/bulk/v8/read/job_456"
 
         {:ok,

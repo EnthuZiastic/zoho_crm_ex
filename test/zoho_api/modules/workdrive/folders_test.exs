@@ -10,7 +10,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FoldersTest do
 
   describe "list_team_folders/2" do
     test "lists team folders" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, headers, _opts ->
         assert url =~ "workdrive/api/v1/teams/team_123/teamfolders"
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
@@ -30,7 +30,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FoldersTest do
 
   describe "list_folders/2" do
     test "lists folders within a parent folder" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "files/folder_123/files"
 
         {:ok,
@@ -49,7 +49,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FoldersTest do
 
   describe "get_folder/2" do
     test "gets folder details" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "files/folder_123"
 
         {:ok,
@@ -71,7 +71,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FoldersTest do
 
   describe "create_folder/1" do
     test "creates a new folder" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers, _opts ->
         assert url =~ "workdrive/api/v1/files"
         body_map = Jason.decode!(body)
         assert body_map["data"]["attributes"]["name"] == "New Folder"
@@ -100,7 +100,7 @@ defmodule ZohoAPI.Modules.WorkDrive.FoldersTest do
 
   describe "delete_folder/2" do
     test "deletes a folder" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :delete, url, _body, _headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :delete, url, _body, _headers, _opts ->
         assert url =~ "files/folder_123"
 
         {:ok,

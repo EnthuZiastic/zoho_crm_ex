@@ -10,7 +10,7 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
 
   describe "execute/1" do
     test "executes composite requests" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
         assert url =~ "crm/v8/__composite_requests"
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 

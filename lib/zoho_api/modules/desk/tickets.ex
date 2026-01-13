@@ -31,6 +31,7 @@ defmodule ZohoAPI.Modules.Desk.Tickets do
 
   alias ZohoAPI.InputRequest
   alias ZohoAPI.Request
+  alias ZohoAPI.Validation
 
   @doc """
   Lists all tickets.
@@ -68,10 +69,12 @@ defmodule ZohoAPI.Modules.Desk.Tickets do
   """
   @spec get_ticket(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def get_ticket(%InputRequest{} = r, ticket_id) do
-    construct_request(r)
-    |> Request.with_path("tickets/#{ticket_id}")
-    |> Request.with_method(:get)
-    |> Request.send()
+    with :ok <- Validation.validate_id(ticket_id) do
+      construct_request(r)
+      |> Request.with_path("tickets/#{ticket_id}")
+      |> Request.with_method(:get)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -108,11 +111,13 @@ defmodule ZohoAPI.Modules.Desk.Tickets do
   """
   @spec update_ticket(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def update_ticket(%InputRequest{} = r, ticket_id) do
-    construct_request(r)
-    |> Request.with_path("tickets/#{ticket_id}")
-    |> Request.with_method(:patch)
-    |> Request.with_body(r.body)
-    |> Request.send()
+    with :ok <- Validation.validate_id(ticket_id) do
+      construct_request(r)
+      |> Request.with_path("tickets/#{ticket_id}")
+      |> Request.with_method(:patch)
+      |> Request.with_body(r.body)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -125,10 +130,12 @@ defmodule ZohoAPI.Modules.Desk.Tickets do
   """
   @spec delete_ticket(InputRequest.t(), String.t()) :: {:ok, any()} | {:error, any()}
   def delete_ticket(%InputRequest{} = r, ticket_id) do
-    construct_request(r)
-    |> Request.with_path("tickets/#{ticket_id}")
-    |> Request.with_method(:delete)
-    |> Request.send()
+    with :ok <- Validation.validate_id(ticket_id) do
+      construct_request(r)
+      |> Request.with_path("tickets/#{ticket_id}")
+      |> Request.with_method(:delete)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -161,10 +168,12 @@ defmodule ZohoAPI.Modules.Desk.Tickets do
   """
   @spec list_threads(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def list_threads(%InputRequest{} = r, ticket_id) do
-    construct_request(r)
-    |> Request.with_path("tickets/#{ticket_id}/threads")
-    |> Request.with_method(:get)
-    |> Request.send()
+    with :ok <- Validation.validate_id(ticket_id) do
+      construct_request(r)
+      |> Request.with_path("tickets/#{ticket_id}/threads")
+      |> Request.with_method(:get)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -179,11 +188,13 @@ defmodule ZohoAPI.Modules.Desk.Tickets do
   """
   @spec add_comment(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def add_comment(%InputRequest{} = r, ticket_id) do
-    construct_request(r)
-    |> Request.with_path("tickets/#{ticket_id}/comments")
-    |> Request.with_method(:post)
-    |> Request.with_body(r.body)
-    |> Request.send()
+    with :ok <- Validation.validate_id(ticket_id) do
+      construct_request(r)
+      |> Request.with_path("tickets/#{ticket_id}/comments")
+      |> Request.with_method(:post)
+      |> Request.with_body(r.body)
+      |> Request.send()
+    end
   end
 
   defp construct_request(%InputRequest{org_id: nil}) do
