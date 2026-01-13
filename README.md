@@ -11,6 +11,11 @@ An Elixir client library for multiple Zoho APIs with multi-region and multi-serv
 - **Zoho Bookings** - Appointment scheduling
 - **Zoho Projects** - Task and project management
 
+## Requirements
+
+- Elixir ~> 1.17
+- Erlang/OTP 26+
+
 ## Installation
 
 Add `zoho_api` to your list of dependencies in `mix.exs`:
