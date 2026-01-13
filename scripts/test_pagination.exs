@@ -9,8 +9,6 @@
 # Configuration:
 #   Copy scripts/config.example.exs to scripts/config.exs and fill in your values
 
-Mix.install([])
-
 # Load configuration
 config_path = Path.join(__DIR__, "config.exs")
 
