@@ -3,8 +3,8 @@ defmodule ZohoCrm.Modules.Bookings do
   This module handle Zoho Booking API
   """
 
-  alias ZohoCrm.Request
   alias ZohoCrm.InputRequest
+  alias ZohoCrm.Request
 
   @api_type "bookings"
   @version "v1"
