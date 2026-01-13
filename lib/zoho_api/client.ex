@@ -135,6 +135,14 @@ defmodule ZohoAPI.Client do
     end
   end
 
+  # Note: When multiple concurrent requests receive 401 errors, they may all attempt
+  # to refresh the token simultaneously. This is generally acceptable because:
+  # 1. Zoho's OAuth endpoint handles concurrent refresh requests gracefully
+  # 2. The on_token_refresh callback allows the application to implement its own
+  #    token caching/mutex logic (e.g., using a GenServer or ETS)
+  # 3. Each request will get a valid token and succeed
+  # For high-concurrency scenarios, consider implementing token caching at the
+  # application level using the on_token_refresh callback.
   defp do_token_refresh(request, input) do
     service = api_type_to_service(request.api_type)
 

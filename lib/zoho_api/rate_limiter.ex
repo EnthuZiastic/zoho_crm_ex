@@ -4,6 +4,8 @@ defmodule ZohoAPI.RateLimiter do
   @compile {:no_warn_undefined, {RateLimiter.Config, :new, 4}}
   @dialyzer {:nowarn_function, execute_with_rate_limiter: 2}
 
+  require Logger
+
   @moduledoc """
   Rate limiter integration for Zoho API requests.
 
@@ -119,11 +121,21 @@ defmodule ZohoAPI.RateLimiter do
         request_fn.()
 
       is_nil(config.repo) ->
-        # Rate limiter not properly configured, execute directly
+        # Rate limiter enabled but no repo configured
+        Logger.warning(
+          "ZohoAPI.RateLimiter: enabled but no repo configured. " <>
+            "Rate limiting disabled. Configure :repo in :zoho_api, :rate_limiter"
+        )
+
         request_fn.()
 
       not rate_limiter_available?() ->
-        # RateLimiter dependency not available, execute directly
+        # RateLimiter dependency not available
+        Logger.warning(
+          "ZohoAPI.RateLimiter: enabled but rate_limiter dependency not installed. " <>
+            "Add {:rate_limiter, github: \"Enthuziastic/rate_limiter\"} to mix.exs"
+        )
+
         request_fn.()
 
       true ->
