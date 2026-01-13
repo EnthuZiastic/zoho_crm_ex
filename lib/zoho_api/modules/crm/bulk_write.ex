@@ -68,6 +68,27 @@ defmodule ZohoAPI.Modules.CRM.BulkWrite do
     - `input` - InputRequest with `body` containing the file content
     - `module_name` - The target module API name (e.g., "Leads")
 
+  ## Memory Considerations
+
+  **Important:** The file content must be loaded into memory before calling this
+  function. File size validation occurs after the data is in memory.
+
+  For large files approaching the 25 MB limit:
+  - Check file size before reading into memory using `File.stat!/1`
+  - Consider chunking or batching if processing multiple files
+  - The validation will reject files > 25 MB with a descriptive error
+
+  ```elixir
+  # Recommended: Check size before loading
+  %{size: size} = File.stat!(file_path)
+  if size > 25 * 1024 * 1024 do
+    {:error, :file_too_large}
+  else
+    content = File.read!(file_path)
+    BulkWrite.upload_file(input |> InputRequest.with_body(content), "Leads")
+  end
+  ```
+
   ## Returns
 
     - `{:ok, %{"status" => "success", "details" => %{"file_id" => "..."}}}` on success

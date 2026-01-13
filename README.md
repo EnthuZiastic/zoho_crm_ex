@@ -213,6 +213,33 @@ input = InputRequest.new("access_token")
 {:ok, %{"__composite_responses" => responses}} = Composite.execute(input)
 ```
 
+### Pagination
+
+For modules with many records, use streaming pagination for memory-efficient processing:
+
+```elixir
+alias ZohoAPI.Modules.CRM.Records
+
+input = InputRequest.new("access_token")
+|> InputRequest.with_refresh_token("refresh_token")
+|> InputRequest.with_module_api_name("Leads")
+
+# Stream lazily - only one page in memory at a time
+Records.stream_all(input)
+|> Stream.filter(&(&1["Status"] == "Active"))
+|> Stream.take(1000)
+|> Enum.to_list()
+
+# Or fetch all at once (loads everything into memory)
+{:ok, all_leads} = Records.fetch_all_records(input)
+
+# With options
+Records.stream_all(input, per_page: 100, max_records: 5000)
+|> Enum.each(&process_lead/1)
+```
+
+See `ZohoAPI.Pagination` module documentation for advanced usage.
+
 ## Multi-Region Support
 
 All APIs support multiple Zoho data center regions:
