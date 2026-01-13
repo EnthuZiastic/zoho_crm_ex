@@ -268,8 +268,6 @@ defmodule ZohoAPI.Retry do
     end
   end
 
-  defp extract_retry_after(_), do: nil
-
   defp parse_retry_after_string(value) do
     case Integer.parse(value) do
       {seconds, _} when seconds > 0 -> seconds
