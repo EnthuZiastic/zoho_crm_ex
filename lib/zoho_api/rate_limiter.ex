@@ -1,7 +1,8 @@
 defmodule ZohoAPI.RateLimiter do
-  # Suppress compiler warnings for optional RateLimiter dependency
+  # Suppress compiler and dialyzer warnings for optional RateLimiter dependency
   @compile {:no_warn_undefined, {RateLimiter, :enqueue, 4}}
   @compile {:no_warn_undefined, {RateLimiter.Config, :new, 4}}
+  @dialyzer {:nowarn_function, execute_with_rate_limiter: 2}
 
   @moduledoc """
   Rate limiter integration for Zoho API requests.
