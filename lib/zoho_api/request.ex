@@ -224,6 +224,19 @@ defmodule ZohoAPI.Request do
   | File uploads       | 60s        | 120s+      |
   | Large exports      | 60s        | 300-600s   |
 
+  ## Timeout Fallback Precedence
+
+  The actual timeout used depends on what you set:
+
+  | You Set                      | Connection Timeout    | Receive Timeout       |
+  |------------------------------|----------------------|----------------------|
+  | Neither                      | Global config/30s    | Global config/30s    |
+  | `timeout` only               | Your timeout         | Your timeout         |
+  | `recv_timeout` only          | Global config/30s    | Your recv_timeout    |
+  | Both                         | Your timeout         | Your recv_timeout    |
+
+  Global config: `config :zoho_api, :http_timeout, 45_000`
+
   ## Examples
 
       # Set 1 minute connection timeout

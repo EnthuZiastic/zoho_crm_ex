@@ -97,6 +97,8 @@ defmodule ZohoAPI.Modules.CRM.Composite do
       {:ok, result} = Composite.execute(input)
   """
 
+  require Logger
+
   alias ZohoAPI.InputRequest
   alias ZohoAPI.Request
 
@@ -163,6 +165,14 @@ defmodule ZohoAPI.Modules.CRM.Composite do
 
   @spec execute(InputRequest.t()) :: {:ok, map()} | {:error, any()}
   def execute(%InputRequest{} = r) do
+    # Warn if module_api_name is set since it's ignored for composite requests
+    if r.module_api_name do
+      Logger.warning(
+        "Composite.execute: module_api_name is set but will be ignored. " <>
+          "Individual request paths are specified in the __composite_requests body."
+      )
+    end
+
     with :ok <- validate_composite_requests(r.body) do
       Request.new("composite")
       |> Request.set_access_token(r.access_token)
