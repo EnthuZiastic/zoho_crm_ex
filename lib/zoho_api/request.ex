@@ -214,6 +214,16 @@ defmodule ZohoAPI.Request do
   **Note:** Timeout values must be positive integers (> 0). Invalid values
   will raise an `ArgumentError` with a descriptive message.
 
+  ## Recommended Timeout Values
+
+  | Operation Type     | Connection | Receive    |
+  |--------------------|------------|------------|
+  | Standard API calls | 30s        | 30s        |
+  | Search operations  | 30s        | 60s        |
+  | Bulk read/write    | 60s        | 120-300s   |
+  | File uploads       | 60s        | 120s+      |
+  | Large exports      | 60s        | 300-600s   |
+
   ## Examples
 
       # Set 1 minute connection timeout

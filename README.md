@@ -28,6 +28,22 @@ def deps do
 end
 ```
 
+### Optional Dependencies
+
+For PostgreSQL-backed rate limiting, add the `rate_limiter` dependency:
+
+```elixir
+def deps do
+  [
+    {:zoho_api, "~> 0.2.0"},
+    # Optional: PostgreSQL-backed rate limiting
+    {:rate_limiter, github: "Enthuziastic/rate_limiter", optional: true}
+  ]
+end
+```
+
+The library works without this dependency - rate limiting is simply disabled.
+
 ## Configuration
 
 Configure credentials for each Zoho service you need:
