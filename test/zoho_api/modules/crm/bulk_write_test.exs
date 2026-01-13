@@ -125,5 +125,23 @@ defmodule ZohoAPI.Modules.CRM.BulkWriteTest do
       assert message =~ "exceeds maximum allowed size"
       assert message =~ "25.0 MB"
     end
+
+    test "rejects non-binary file body" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{"invalid" => "map"})
+
+      assert {:error, message} = BulkWrite.upload_file(input, "Leads")
+      assert message == "File body must be binary data"
+    end
+
+    test "rejects list as file body" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(["not", "binary"])
+
+      assert {:error, message} = BulkWrite.upload_file(input, "Leads")
+      assert message == "File body must be binary data"
+    end
   end
 end

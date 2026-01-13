@@ -5,14 +5,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 This is an Elixir library that provides a client wrapper for multiple Zoho APIs:
-- **Zoho CRM API** - Core CRM operations (records CRUD, search)
+- **Zoho CRM API** - Core CRM operations (records CRUD, search, bulk operations, composite API)
+- **Zoho Desk API** - Ticket management
+- **Zoho WorkDrive API** - File and folder operations
 - **Zoho Recruit API** - Recruitment management (candidates, jobs)
 - **Zoho Bookings API** - Appointment booking and scheduling
 - **Zoho Projects API** - Project management (tasks, comments, users)
 
 The library uses a builder pattern with two main request structures:
-- `ZohoCrm.Request` - Low-level HTTP request builder
-- `ZohoCrm.InputRequest` - High-level API input abstraction
+- `ZohoAPI.Request` - Low-level HTTP request builder
+- `ZohoAPI.InputRequest` - High-level API input abstraction
 
 ## Development Commands
 
@@ -31,7 +33,7 @@ mix compile
 mix test
 
 # Run a specific test file
-mix test test/zoho_crm_test.exs
+mix test test/zoho_api/modules/crm/records_test.exs
 
 # Run tests with coverage
 mix test --cover
@@ -62,18 +64,20 @@ mix dialyzer
 All API calls follow this pattern:
 
 ```
-InputRequest → construct_request() → Request → HTTPoison → Response
+InputRequest -> construct_request() -> Request -> HTTPoison -> Response
 ```
 
-1. **InputRequest** (`lib/zoho_crm/input_request.ex`) - User-facing struct containing:
+1. **InputRequest** (`lib/zoho_api/input_request.ex`) - User-facing struct containing:
    - `access_token` (required)
    - `module_api_name` - Zoho module name (e.g., "Leads", "Contacts")
    - `query_params` - URL query parameters
    - `body` - Request payload
+   - `org_id` - Organization ID (required for Desk API)
 
-2. **Request** (`lib/zoho_crm/request.ex`) - Internal HTTP request builder with:
-   - Builder methods: `with_path/2`, `with_method/2`, `with_body/2`, `set_access_token/2`
-   - API type routing: `construct_url/1` handles different API types (crm, recruit, bookings, oauth, portal)
+2. **Request** (`lib/zoho_api/request.ex`) - Internal HTTP request builder with:
+   - Builder methods: `with_path/2`, `with_method/2`, `with_body/2`, `set_access_token/2`, `with_region/2`
+   - API type routing: `construct_url/1` handles different API types
+   - Multi-region support: All major Zoho data centers supported
    - Response handling: Auto-decodes JSON, returns `{:ok, data}` or `{:error, reason}`
 
 3. **Module-specific constructors** - Each API module has a private `construct_request/1` function that:
@@ -84,13 +88,23 @@ InputRequest → construct_request() → Request → HTTPoison → Response
 ### API Module Structure
 
 ```
-lib/zoho_crm/modules/
-├── records.ex          # CRM operations (api_type: "crm")
+lib/zoho_api/modules/
+├── crm/
+│   ├── records.ex      # CRM CRUD operations (api_type: "crm")
+│   ├── bulk_read.ex    # Bulk read operations (api_type: "bulk")
+│   ├── bulk_write.ex   # Bulk write operations (api_type: "bulk")
+│   └── composite.ex    # Composite API (api_type: "composite")
+├── desk/
+│   └── tickets.ex      # Desk tickets (api_type: "desk")
+├── workdrive/
+│   ├── files.ex        # WorkDrive files (api_type: "workdrive")
+│   └── folders.ex      # WorkDrive folders (api_type: "workdrive")
+├── recruit/
+│   └── records.ex      # Recruit API (api_type: "recruit")
 ├── token.ex            # OAuth token refresh (api_type: "oauth")
-├── bookings.ex         # Bookings API (api_type: "bookings", v1)
+├── bookings.ex         # Bookings API (api_type: "bookings")
 ├── projects.ex         # Projects API (api_type: "portal")
-└── recruit/
-    └── records.ex      # Recruit API (api_type: "recruit", v2)
+└── records.ex          # DEPRECATED: Legacy wrapper for CRM.Records
 ```
 
 Each module follows the pattern:
@@ -101,12 +115,19 @@ Each module follows the pattern:
 
 ### API Type Routing
 
-The `Request.construct_url/1` function pattern matches on `api_type`:
-- **"crm"** → `https://www.zohoapis.in/crm/v8/{path}`
-- **"recruit"** → `https://recruit.zoho.in/recruit/v2/{path}` (overrides base_url)
-- **"bookings"** → `https://www.zohoapis.in/bookings/v1/{path}`
-- **"oauth"** → `https://accounts.zoho.in/oauth/v2/{path}` (overrides base_url)
-- **"portal"** → `https://projectsapi.zoho.in/restapi{path}` (custom base, no api_type prefix)
+The `Request.construct_url/1` function pattern matches on `api_type` and uses region-specific URLs:
+
+| API Type | URL Pattern |
+|----------|-------------|
+| `"crm"` | `https://www.zohoapis.{region}/crm/v8/{path}` |
+| `"desk"` | `https://desk.zoho.{region}/api/v1/{path}` |
+| `"workdrive"` | `https://www.zohoapis.{region}/workdrive/api/v1/{path}` |
+| `"recruit"` | `https://recruit.zoho.{region}/recruit/v2/{path}` |
+| `"bookings"` | `https://www.zohoapis.{region}/bookings/v1/{path}` |
+| `"oauth"` | `https://accounts.zoho.{region}/oauth/v2/{path}` |
+| `"portal"` | `https://projectsapi.zoho.{region}/restapi{path}` |
+| `"bulk"` | `https://www.zohoapis.{region}/crm/bulk/v8/{path}` |
+| `"composite"` | `https://www.zohoapis.{region}/crm/v8/__composite_requests` |
 
 ### Key Patterns
 
@@ -117,27 +138,45 @@ Request.new("crm")
 |> Request.set_access_token(token)
 |> Request.with_method(:get)
 |> Request.with_path("Leads")
+|> Request.with_region(:com)
 |> Request.send()
 ```
 
 #### Body Wrapping
 - CRM/Recruit: Wrap in `%{"data" => body}`
 - Bookings (form data): Use `application/x-www-form-urlencoded` headers
+- Desk/WorkDrive: Body passed as-is with JSON:API format
 - Projects: Body passed as-is
 
-#### Upsert Support
-The `upsert_records/2` function supports a special `duplicate_check_fields` option:
+#### Multi-Region Support
 ```elixir
-upsert_records(input_request, duplicate_check_fields: ["Email", "Phone"])
+# Token module
+Token.refresh_access_token(refresh_token, region: :eu, service: :crm)
+
+# Request builder
+Request.new("crm")
+|> Request.with_region(:com)
 ```
-This merges the fields into the request body before sending.
+
+Supported regions: `:in`, `:com`, `:eu`, `:au`, `:jp`, `:uk`, `:ca`, `:sa`
 
 ## Configuration
 
 The library expects configuration in `config/config.exs`:
 
 ```elixir
-config :zoho_crm, :zoho,
+# Per-service configuration (recommended)
+config :zoho_api, :crm,
+  client_id: {:system, "ZOHO_CRM_CLIENT_ID"},
+  client_secret: {:system, "ZOHO_CRM_CLIENT_SECRET"}
+
+config :zoho_api, :desk,
+  client_id: {:system, "ZOHO_DESK_CLIENT_ID"},
+  client_secret: {:system, "ZOHO_DESK_CLIENT_SECRET"},
+  org_id: {:system, "ZOHO_DESK_ORG_ID"}
+
+# Legacy configuration (still supported for :crm)
+config :zoho_api, :zoho,
   client_id: {:system, "ZOHO_CLIENT_ID"},
   client_secret: {:system, "ZOHO_CLIENT_SECRET"}
 ```
@@ -146,7 +185,7 @@ Values can be:
 - Direct strings: `"actual_value"`
 - System env vars: `{:system, "ENV_VAR_NAME"}`
 
-Access via `ZohoCrm.Config.get_config()` which raises if not configured.
+Access via `ZohoAPI.Config.get_config(:crm)` which raises if not configured.
 
 ## Code Style
 
@@ -160,6 +199,26 @@ Access via `ZohoCrm.Config.get_config()` which raises if not configured.
 ## Important Notes
 
 - All API responses are automatically JSON-decoded when possible
-- HTTP methods are atoms: `:get`, `:post`, `:put`, `:delete`
-- Access tokens must be refreshed using `ZohoCrm.Modules.Token.refresh_access_token/1`
-- The library targets India data center (`.in` domains) - URLs would need updating for other regions
+- HTTP methods are atoms: `:get`, `:post`, `:put`, `:delete`, `:patch`
+- Access tokens must be refreshed using `ZohoAPI.Modules.Token.refresh_access_token/2`
+- The library supports all major Zoho data center regions
+- Zoho Desk API requires `org_id` - set via `InputRequest.with_org_id/2`
+- Bulk operations have limits: 25,000 records for write, 200,000 for read
+- Composite API allows max 5 requests per call
+
+## Testing with Mox
+
+The library uses Mox for HTTP mocking in tests:
+
+```elixir
+# test/test_helper.exs
+Mox.defmock(ZohoAPI.HTTPClientMock, for: ZohoAPI.HTTPClient)
+Application.put_env(:zoho_api, :http_client, ZohoAPI.HTTPClientMock)
+```
+
+```elixir
+# In tests
+expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, headers ->
+  {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"data" => []})}}
+end)
+```

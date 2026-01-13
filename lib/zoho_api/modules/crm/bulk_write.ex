@@ -94,7 +94,7 @@ defmodule ZohoAPI.Modules.CRM.BulkWrite do
     end
   end
 
-  defp validate_file_size(_), do: :ok
+  defp validate_file_size(_), do: {:error, "File body must be binary data"}
 
   defp format_size(bytes) when bytes < 1024, do: "#{bytes} B"
   defp format_size(bytes) when bytes < 1024 * 1024, do: "#{Float.round(bytes / 1024, 1)} KB"
