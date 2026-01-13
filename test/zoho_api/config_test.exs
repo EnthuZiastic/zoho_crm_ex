@@ -74,8 +74,9 @@ defmodule ZohoAPI.ConfigTest do
       # Ensure the env var doesn't exist
       System.delete_env("ZOHO_TEST_MISSING_ENV_VAR")
 
+      # Error message includes the variable name for easier debugging
       assert_raise ArgumentError,
-                   ~r/Required environment variable is not set/,
+                   ~r/Environment variable 'ZOHO_TEST_MISSING_ENV_VAR' is not set/,
                    fn ->
                      Config.get_config(:crm)
                    end
@@ -91,9 +92,12 @@ defmodule ZohoAPI.ConfigTest do
 
       System.put_env("ZOHO_TEST_EMPTY_ENV_VAR", "")
 
-      assert_raise ArgumentError, ~r/Required environment variable is empty/, fn ->
-        Config.get_config(:crm)
-      end
+      # Error message includes the variable name for easier debugging
+      assert_raise ArgumentError,
+                   ~r/Environment variable 'ZOHO_TEST_EMPTY_ENV_VAR' is set but empty/,
+                   fn ->
+                     Config.get_config(:crm)
+                   end
 
       System.delete_env("ZOHO_TEST_EMPTY_ENV_VAR")
       Application.delete_env(:zoho_api, :crm)

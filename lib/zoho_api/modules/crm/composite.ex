@@ -76,6 +76,7 @@ defmodule ZohoAPI.Modules.CRM.Composite do
     with :ok <- validate_composite_requests(r.body) do
       Request.new("composite")
       |> Request.set_access_token(r.access_token)
+      |> Request.with_region(r.region)
       |> Request.with_params(r.query_params)
       |> Request.with_body(r.body)
       |> Request.with_method(:post)

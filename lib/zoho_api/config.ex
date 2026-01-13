@@ -151,11 +151,15 @@ defmodule ZohoAPI.Config do
     case System.get_env(system_var) do
       nil ->
         raise ArgumentError,
-          message: "Required environment variable is not set (check your Zoho API configuration)"
+          message:
+            "Environment variable '#{system_var}' is not set. " <>
+              "Please set this environment variable for your Zoho API configuration."
 
       "" ->
         raise ArgumentError,
-          message: "Required environment variable is empty (check your Zoho API configuration)"
+          message:
+            "Environment variable '#{system_var}' is set but empty. " <>
+              "Please provide a valid value for your Zoho API configuration."
 
       value ->
         value

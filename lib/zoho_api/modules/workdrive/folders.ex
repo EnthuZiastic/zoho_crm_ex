@@ -35,6 +35,7 @@ defmodule ZohoAPI.Modules.WorkDrive.Folders do
 
   alias ZohoAPI.InputRequest
   alias ZohoAPI.Request
+  alias ZohoAPI.Validation
 
   @doc """
   Lists all team folders for a team.
@@ -50,10 +51,12 @@ defmodule ZohoAPI.Modules.WorkDrive.Folders do
   """
   @spec list_team_folders(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def list_team_folders(%InputRequest{} = r, team_id) do
-    construct_request(r)
-    |> Request.with_path("teams/#{team_id}/teamfolders")
-    |> Request.with_method(:get)
-    |> Request.send()
+    with :ok <- Validation.validate_id(team_id) do
+      construct_request(r)
+      |> Request.with_path("teams/#{team_id}/teamfolders")
+      |> Request.with_method(:get)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -66,10 +69,12 @@ defmodule ZohoAPI.Modules.WorkDrive.Folders do
   """
   @spec list_folders(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def list_folders(%InputRequest{} = r, folder_id) do
-    construct_request(r)
-    |> Request.with_path("files/#{folder_id}/files")
-    |> Request.with_method(:get)
-    |> Request.send()
+    with :ok <- Validation.validate_id(folder_id) do
+      construct_request(r)
+      |> Request.with_path("files/#{folder_id}/files")
+      |> Request.with_method(:get)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -82,10 +87,12 @@ defmodule ZohoAPI.Modules.WorkDrive.Folders do
   """
   @spec get_folder(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def get_folder(%InputRequest{} = r, folder_id) do
-    construct_request(r)
-    |> Request.with_path("files/#{folder_id}")
-    |> Request.with_method(:get)
-    |> Request.send()
+    with :ok <- Validation.validate_id(folder_id) do
+      construct_request(r)
+      |> Request.with_path("files/#{folder_id}")
+      |> Request.with_method(:get)
+      |> Request.send()
+    end
   end
 
   @doc """
@@ -129,10 +136,12 @@ defmodule ZohoAPI.Modules.WorkDrive.Folders do
   """
   @spec delete_folder(InputRequest.t(), String.t()) :: {:ok, any()} | {:error, any()}
   def delete_folder(%InputRequest{} = r, folder_id) do
-    construct_request(r)
-    |> Request.with_path("files/#{folder_id}")
-    |> Request.with_method(:delete)
-    |> Request.send()
+    with :ok <- Validation.validate_id(folder_id) do
+      construct_request(r)
+      |> Request.with_path("files/#{folder_id}")
+      |> Request.with_method(:delete)
+      |> Request.send()
+    end
   end
 
   defp construct_request(%InputRequest{} = ir) do
