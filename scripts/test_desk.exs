@@ -27,6 +27,16 @@ end
 
 config = Code.eval_file(config_path) |> elem(0)
 
+# Configure the application with credentials from config.exs
+# Supports per-service credentials (config[:desk][:client_id]) or shared (config[:client_id])
+Application.put_env(:zoho_api, :desk,
+  client_id: config[:desk][:client_id] || config[:client_id],
+  client_secret: config[:desk][:client_secret] || config[:client_secret],
+  org_id: config[:desk][:org_id]
+)
+
+refresh_token = config[:desk][:refresh_token] || config[:refresh_token]
+
 alias ZohoAPI.InputRequest
 alias ZohoAPI.Modules.Desk
 alias ZohoAPI.Modules.Token
@@ -70,7 +80,7 @@ access_token =
   else
     IO.puts("Refreshing access token...")
 
-    case Token.refresh_access_token(config[:refresh_token], :desk, region: config[:region]) do
+    case Token.refresh_access_token(refresh_token, :desk, region: config[:region]) do
       {:ok, %{"access_token" => token}} ->
         IO.puts("[PASS] Token refreshed successfully")
         token

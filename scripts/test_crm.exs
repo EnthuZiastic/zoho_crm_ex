@@ -26,10 +26,13 @@ end
 config = Code.eval_file(config_path) |> elem(0)
 
 # Configure the application with credentials from config.exs
+# Supports per-service credentials (config[:crm][:client_id]) or shared (config[:client_id])
 Application.put_env(:zoho_api, :crm,
-  client_id: config[:client_id],
-  client_secret: config[:client_secret]
+  client_id: config[:crm][:client_id] || config[:client_id],
+  client_secret: config[:crm][:client_secret] || config[:client_secret]
 )
+
+refresh_token = config[:crm][:refresh_token] || config[:refresh_token]
 
 alias ZohoAPI.InputRequest
 alias ZohoAPI.Modules.CRM.Records
@@ -69,7 +72,7 @@ access_token =
   else
     IO.puts("Refreshing access token...")
 
-    case Token.refresh_access_token(config[:refresh_token], service: :crm, region: config[:region]) do
+    case Token.refresh_access_token(refresh_token, service: :crm, region: config[:region]) do
       {:ok, %{"access_token" => token}} ->
         IO.puts("[PASS] Token refreshed successfully")
         token
@@ -162,7 +165,7 @@ TestHelper.section("Client with Retry Logic")
 client_input =
   base_input
   |> InputRequest.with_query_params(%{"per_page" => 3})
-  |> InputRequest.with_refresh_token(config[:refresh_token])
+  |> InputRequest.with_refresh_token(refresh_token)
   |> InputRequest.with_retry_opts(max_retries: 2, base_delay_ms: 500)
 
 request =

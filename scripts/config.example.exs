@@ -7,12 +7,6 @@
 #   mix run scripts/test_crm.exs
 
 %{
-  # OAuth Configuration
-  # Get these from Zoho API Console: https://api-console.zoho.com/
-  client_id: "YOUR_CLIENT_ID",
-  client_secret: "YOUR_CLIENT_SECRET",
-  refresh_token: "YOUR_REFRESH_TOKEN",
-
   # Current access token (optional, will be refreshed automatically)
   access_token: nil,
 
@@ -20,7 +14,11 @@
   region: :in,
 
   # CRM Configuration
+  # Get OAuth credentials from Zoho API Console: https://api-console.zoho.com/
   crm: %{
+    client_id: "YOUR_CRM_CLIENT_ID",
+    client_secret: "YOUR_CRM_CLIENT_SECRET",
+    refresh_token: "YOUR_CRM_REFRESH_TOKEN",
     # Module to test (e.g., "Leads", "Contacts", "Deals")
     module: "Leads",
     # Specific record ID for get/update tests (optional)
@@ -29,6 +27,10 @@
 
   # Desk Configuration (requires separate OAuth scope)
   desk: %{
+    # Per-service credentials (can be different from CRM)
+    client_id: "YOUR_DESK_CLIENT_ID",
+    client_secret: "YOUR_DESK_CLIENT_SECRET",
+    refresh_token: "YOUR_DESK_REFRESH_TOKEN",
     # Organization ID (required for Desk API)
     org_id: "YOUR_ORG_ID",
     # Department ID for ticket tests
