@@ -3,8 +3,8 @@ defmodule ZohoCrm.Modules.Projects do
   This module handle Zoho Project API
   """
 
-  alias ZohoCrm.Request
   alias ZohoCrm.InputRequest
+  alias ZohoCrm.Request
 
   @api_type "portal"
   @project_base "https://projectsapi.zoho.in/restapi"

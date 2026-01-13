@@ -2,8 +2,8 @@ defmodule ZohoCrm.Modules.Recruit.Records do
   @moduledoc """
   This module handle Zoho Recruit Records API
   """
-  alias ZohoCrm.Request
   alias ZohoCrm.InputRequest
+  alias ZohoCrm.Request
 
   @api_type "recruit"
   @version "v2"
