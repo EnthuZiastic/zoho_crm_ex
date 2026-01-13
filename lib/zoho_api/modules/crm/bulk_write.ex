@@ -88,13 +88,27 @@ defmodule ZohoAPI.Modules.CRM.BulkWrite do
 
     if size > @max_file_size do
       {:error,
-       "File size #{format_size(size)} exceeds maximum allowed size of #{format_size(@max_file_size)}"}
+       %{
+         code: "FILE_SIZE_EXCEEDED",
+         message:
+           "File size #{format_size(size)} exceeds maximum allowed size of #{format_size(@max_file_size)}",
+         details: %{
+           actual_size: size,
+           max_size: @max_file_size
+         }
+       }}
     else
       :ok
     end
   end
 
-  defp validate_file_size(_), do: {:error, "File body must be binary data"}
+  defp validate_file_size(_) do
+    {:error,
+     %{
+       code: "INVALID_FILE_BODY",
+       message: "File body must be binary data"
+     }}
+  end
 
   defp format_size(bytes) when bytes < 1024, do: "#{bytes} B"
   defp format_size(bytes) when bytes < 1024 * 1024, do: "#{Float.round(bytes / 1024, 1)} KB"

@@ -27,60 +27,13 @@ defmodule ZohoAPI.Request do
   """
 
   alias ZohoAPI.HTTPClient
+  alias ZohoAPI.Regions
 
   @base_url "https://www.zohoapis.in"
   @version "v8"
 
   @default_headers %{
     "Content-Type" => "application/json"
-  }
-
-  # Region-specific base URLs for different Zoho services
-  @region_urls %{
-    # Zoho APIs (CRM, Bookings, WorkDrive, Bulk, Composite)
-    zohoapis: %{
-      in: "https://www.zohoapis.in",
-      com: "https://www.zohoapis.com",
-      eu: "https://www.zohoapis.eu",
-      au: "https://www.zohoapis.com.au",
-      jp: "https://www.zohoapis.jp",
-      uk: "https://www.zohoapis.uk",
-      ca: "https://www.zohoapis.ca",
-      sa: "https://www.zohoapis.sa"
-    },
-    # Zoho Recruit
-    recruit: %{
-      in: "https://recruit.zoho.in",
-      com: "https://recruit.zoho.com",
-      eu: "https://recruit.zoho.eu",
-      au: "https://recruit.zoho.com.au",
-      jp: "https://recruit.zoho.jp",
-      uk: "https://recruit.zoho.uk",
-      ca: "https://recruit.zohocloud.ca",
-      sa: "https://recruit.zoho.sa"
-    },
-    # Zoho Desk
-    desk: %{
-      in: "https://desk.zoho.in",
-      com: "https://desk.zoho.com",
-      eu: "https://desk.zoho.eu",
-      au: "https://desk.zoho.com.au",
-      jp: "https://desk.zoho.jp",
-      uk: "https://desk.zoho.uk",
-      ca: "https://desk.zohocloud.ca",
-      sa: "https://desk.zoho.sa"
-    },
-    # Zoho Projects
-    projects: %{
-      in: "https://projectsapi.zoho.in",
-      com: "https://projectsapi.zoho.com",
-      eu: "https://projectsapi.zoho.eu",
-      au: "https://projectsapi.zoho.com.au",
-      jp: "https://projectsapi.zoho.jp",
-      uk: "https://projectsapi.zoho.uk",
-      ca: "https://projectsapi.zohocloud.ca",
-      sa: "https://projectsapi.zoho.sa"
-    }
   }
 
   # Default timeout in milliseconds (30 seconds)
@@ -92,6 +45,7 @@ defmodule ZohoAPI.Request do
     :method,
     :api_type,
     :timeout,
+    :recv_timeout,
     params: %{},
     body: %{},
     headers: @default_headers,
@@ -112,7 +66,8 @@ defmodule ZohoAPI.Request do
           base_url: String.t(),
           version: String.t(),
           region: region(),
-          timeout: non_neg_integer() | nil
+          timeout: non_neg_integer() | nil,
+          recv_timeout: non_neg_integer() | nil
         }
 
   @doc """
@@ -164,10 +119,18 @@ defmodule ZohoAPI.Request do
     - `:uk` - United Kingdom
     - `:ca` - Canada
     - `:sa` - Saudi Arabia
+
+  ## Examples
+
+      iex> Request.new() |> Request.with_region(:eu)
+      %Request{region: :eu, ...}
+
+  Raises `ArgumentError` if an invalid region is provided.
   """
   @spec with_region(t(), region()) :: t()
-  def with_region(%__MODULE__{} = r, region)
-      when region in [:in, :com, :eu, :au, :jp, :uk, :ca, :sa] do
+  def with_region(%__MODULE__{} = r, region) do
+    # Validates region and raises ArgumentError with helpful message if invalid
+    Regions.validate!(region)
     %{r | region: region}
   end
 
@@ -240,20 +203,48 @@ defmodule ZohoAPI.Request do
   end
 
   @doc """
-  Sets the request timeout in milliseconds.
+  Sets the connection timeout in milliseconds.
 
-  Default timeout is 30 seconds (30_000 ms). For bulk operations that
-  may take longer, increase this value accordingly.
+  This is the timeout for establishing the initial TCP connection.
+  Default is 30 seconds (30_000 ms).
+
+  For bulk operations that may take longer to connect, increase this value.
+  See also `with_recv_timeout/2` for response timeout.
 
   ## Examples
 
-      # Set 5 minute timeout for bulk operations
+      # Set 1 minute connection timeout
       Request.new("bulk")
-      |> Request.with_timeout(300_000)
+      |> Request.with_timeout(60_000)
   """
   @spec with_timeout(t(), non_neg_integer()) :: t()
   def with_timeout(%__MODULE__{} = r, timeout) when is_integer(timeout) and timeout > 0 do
     %{r | timeout: timeout}
+  end
+
+  @doc """
+  Sets the receive timeout in milliseconds.
+
+  This is the timeout for receiving data from the server after the
+  connection is established. Default is 30 seconds (30_000 ms).
+
+  For bulk operations that return large amounts of data, increase this value.
+  See also `with_timeout/2` for connection timeout.
+
+  ## Examples
+
+      # Set 5 minute receive timeout for bulk downloads
+      Request.new("bulk")
+      |> Request.with_recv_timeout(300_000)
+
+      # Set both timeouts for comprehensive control
+      Request.new("bulk")
+      |> Request.with_timeout(60_000)
+      |> Request.with_recv_timeout(300_000)
+  """
+  @spec with_recv_timeout(t(), non_neg_integer()) :: t()
+  def with_recv_timeout(%__MODULE__{} = r, timeout) when is_integer(timeout) and timeout > 0 do
+    %{r | recv_timeout: timeout}
   end
 
   @doc """
@@ -268,8 +259,17 @@ defmodule ZohoAPI.Request do
   def send(%__MODULE__{} = r) do
     url = construct_url(r)
     headers = Map.to_list(r.headers)
-    timeout = r.timeout || Application.get_env(:zoho_api, :http_timeout, @default_timeout)
-    options = [timeout: timeout, recv_timeout: timeout]
+
+    # Get default timeout from config, fallback to module default
+    default_timeout = Application.get_env(:zoho_api, :http_timeout, @default_timeout)
+
+    # Connection timeout (for establishing TCP connection)
+    connection_timeout = r.timeout || default_timeout
+
+    # Receive timeout (for receiving response data)
+    receive_timeout = r.recv_timeout || r.timeout || default_timeout
+
+    options = [timeout: connection_timeout, recv_timeout: receive_timeout]
 
     case encode_body(r.body) do
       {:ok, body} ->
@@ -385,9 +385,7 @@ defmodule ZohoAPI.Request do
   end
 
   defp get_region_url(service, region) do
-    @region_urls
-    |> Map.get(service, @region_urls[:zohoapis])
-    |> Map.get(region, @region_urls[:zohoapis][:in])
+    Regions.api_url(service, region)
   end
 
   defp append_params(base, params) when map_size(params) == 0, do: base

@@ -38,11 +38,40 @@ defmodule ZohoAPI.Config do
 
   ## Environment Variables
 
-  Values can be environment variables:
+  Values can reference environment variables using the `{:system, "VAR_NAME"}` tuple:
 
       config :zoho_api, :crm,
         client_id: {:system, "ZOHO_CRM_CLIENT_ID"},
         client_secret: {:system, "ZOHO_CRM_CLIENT_SECRET"}
+
+  ### When Environment Variables Are Resolved
+
+  **Important:** Environment variables are resolved at **runtime** when `get_config/1`
+  is called, NOT at compile time. This allows you to:
+
+  - Use the same compiled release in different environments (dev, staging, prod)
+  - Change credentials without recompiling
+  - Use container orchestration secrets that are injected at runtime
+
+  Example flow:
+  1. At compile time: `{:system, "ZOHO_CLIENT_ID"}` is stored as-is
+  2. At runtime: When your code calls `Config.get_config(:crm)`, the library
+     calls `System.get_env("ZOHO_CLIENT_ID")` to get the actual value
+
+  ### Error Handling
+
+  If an environment variable is not set or is empty when accessed, an
+  `ArgumentError` is raised with a helpful message. Ensure your environment
+  variables are set before making API calls.
+
+  ## Timeout Configuration
+
+  You can configure the default HTTP timeout (used for both connection and receive):
+
+      config :zoho_api, :http_timeout, 60_000  # 60 seconds
+
+  The default is 30 seconds (30_000 ms). This can be overridden per-request
+  using `Request.with_timeout/2` and `Request.with_recv_timeout/2`.
   """
 
   defstruct [

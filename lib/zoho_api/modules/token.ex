@@ -36,18 +36,8 @@ defmodule ZohoAPI.Modules.Token do
   """
 
   alias ZohoAPI.Config
+  alias ZohoAPI.Regions
   alias ZohoAPI.Request
-
-  @region_urls %{
-    in: "https://accounts.zoho.in",
-    com: "https://accounts.zoho.com",
-    eu: "https://accounts.zoho.eu",
-    au: "https://accounts.zoho.com.au",
-    jp: "https://accounts.zoho.jp",
-    uk: "https://accounts.zoho.uk",
-    ca: "https://accounts.zohocloud.ca",
-    sa: "https://accounts.zoho.sa"
-  }
 
   @doc """
   Refreshes an access token using a refresh token.
@@ -76,7 +66,7 @@ defmodule ZohoAPI.Modules.Token do
     service = Keyword.get(opts, :service, :crm)
     region = Keyword.get(opts, :region, :in)
     cfg = Config.get_config(service)
-    base_url = Map.get(@region_urls, region, @region_urls[:in])
+    base_url = Regions.oauth_url(region)
 
     # OAuth credentials sent as form-encoded body for security (not in URL query params)
     body =
@@ -116,6 +106,6 @@ defmodule ZohoAPI.Modules.Token do
   """
   @spec oauth_url(atom()) :: String.t()
   def oauth_url(region) when is_atom(region) do
-    Map.get(@region_urls, region, @region_urls[:in])
+    Regions.oauth_url(region)
   end
 end
