@@ -85,7 +85,8 @@ defmodule ZohoAPI.Modules.CRM.Composite do
   defp validate_composite_requests(%{"__composite_requests" => []}),
     do: {:error, "At least one composite request is required"}
 
-  defp validate_composite_requests(%{"__composite_requests" => requests}) when is_list(requests) do
+  defp validate_composite_requests(%{"__composite_requests" => requests})
+       when is_list(requests) do
     count = length(requests)
 
     if count > @max_composite_requests do

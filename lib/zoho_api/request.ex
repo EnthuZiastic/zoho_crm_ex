@@ -370,6 +370,7 @@ defmodule ZohoAPI.Request do
 
   defp append_params(base, params) do
     encoded_params = URI.encode_query(params)
-    "#{base}?#{encoded_params}"
+    separator = if String.contains?(base, "?"), do: "&", else: "?"
+    "#{base}#{separator}#{encoded_params}"
   end
 end

@@ -35,6 +35,9 @@ defmodule ZohoAPI.ConfigTest do
     end
 
     test "falls back to legacy :zoho config for :crm" do
+      # Delete :crm config to force fallback to :zoho
+      Application.delete_env(:zoho_api, :crm)
+
       Application.put_env(:zoho_api, :zoho,
         client_id: "legacy_client_id",
         client_secret: "legacy_client_secret"
@@ -72,7 +75,7 @@ defmodule ZohoAPI.ConfigTest do
       System.delete_env("ZOHO_TEST_MISSING_ENV_VAR")
 
       assert_raise ArgumentError,
-                   ~r/Environment variable ZOHO_TEST_MISSING_ENV_VAR is not set/,
+                   ~r/Required environment variable is not set/,
                    fn ->
                      Config.get_config(:crm)
                    end
@@ -88,7 +91,7 @@ defmodule ZohoAPI.ConfigTest do
 
       System.put_env("ZOHO_TEST_EMPTY_ENV_VAR", "")
 
-      assert_raise ArgumentError, ~r/Environment variable ZOHO_TEST_EMPTY_ENV_VAR is empty/, fn ->
+      assert_raise ArgumentError, ~r/Required environment variable is empty/, fn ->
         Config.get_config(:crm)
       end
 
