@@ -33,6 +33,7 @@ zoho_crm-*.tar
 .DS_Store
 .serena/
 .claude/
+sample/
 
 # Test scripts configuration (contains API keys)
 scripts/config.exs
