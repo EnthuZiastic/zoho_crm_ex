@@ -58,6 +58,7 @@ defmodule ZohoAPI.TokenCache do
   alias ZohoAPI.Modules.Token
 
   @default_ttl_seconds 3500
+  @default_refresh_timeout_ms 60_000
 
   # Client API
 
@@ -82,7 +83,9 @@ defmodule ZohoAPI.TokenCache do
     - `service` - The Zoho service (`:crm`, `:desk`, `:recruit`, etc.)
     - `refresh_token` - The OAuth refresh token
     - `region` - The Zoho region (`:in`, `:com`, `:eu`, etc.)
-    - `opts` - Optional keyword list passed to `Token.refresh_access_token/3`
+    - `opts` - Optional keyword list:
+      - `:timeout` - GenServer call timeout in ms (default: 60_000)
+      - Other options passed to `Token.refresh_access_token/2`
 
   ## Returns
 
@@ -92,7 +95,13 @@ defmodule ZohoAPI.TokenCache do
   @spec refresh_token(atom(), String.t(), atom(), keyword()) ::
           {:ok, String.t()} | {:error, any()}
   def refresh_token(service, refresh_token, region, opts \\ []) do
-    GenServer.call(__MODULE__, {:refresh, service, refresh_token, region, opts}, 30_000)
+    {timeout, token_opts} = Keyword.pop(opts, :timeout, get_refresh_timeout())
+    GenServer.call(__MODULE__, {:refresh, service, refresh_token, region, token_opts}, timeout)
+  end
+
+  defp get_refresh_timeout do
+    Application.get_env(:zoho_api, :token_cache, [])
+    |> Keyword.get(:refresh_timeout_ms, @default_refresh_timeout_ms)
   end
 
   @doc """

@@ -207,8 +207,7 @@ defmodule ZohoAPI.RateLimiter do
   end
 
   defp warned?(key) do
-    :persistent_term.get(key)
-    true
+    :persistent_term.get(key) == true
   rescue
     ArgumentError -> false
   end
