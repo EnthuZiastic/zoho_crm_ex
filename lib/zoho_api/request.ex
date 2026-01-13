@@ -263,6 +263,40 @@ defmodule ZohoAPI.Request do
   """
   @spec send(t()) :: {:ok, any()} | {:error, any()}
   def send(%__MODULE__{} = r) do
+    case send_raw(r) do
+      {:ok, status_code, body} when status_code in 200..299 ->
+        {:ok, body}
+
+      {:ok, _status_code, body} ->
+        {:error, body}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  @doc """
+  Sends the HTTP request and returns the raw response with status code.
+
+  This is useful for retry logic and token refresh handling where you need
+  to inspect the HTTP status code before deciding how to proceed.
+
+  ## Returns
+
+    - `{:ok, status_code, body}` on HTTP response (any status code)
+    - `{:error, reason}` on connection/network error
+
+  ## Examples
+
+      case Request.send_raw(request) do
+        {:ok, 200, body} -> {:ok, body}
+        {:ok, 401, _body} -> refresh_token_and_retry()
+        {:ok, 500, body} -> {:error, {:server_error, body}}
+        {:error, :timeout} -> {:error, :timeout}
+      end
+  """
+  @spec send_raw(t()) :: {:ok, integer(), any()} | {:error, any()}
+  def send_raw(%__MODULE__{} = r) do
     url = construct_url(r)
     headers = Map.to_list(r.headers)
 
@@ -280,7 +314,7 @@ defmodule ZohoAPI.Request do
     case encode_body(r.body) do
       {:ok, body} ->
         HTTPClient.impl().request(r.method, url, body, headers, options)
-        |> handle_response()
+        |> handle_raw_response()
 
       {:error, _} = error ->
         error
@@ -305,17 +339,12 @@ defmodule ZohoAPI.Request do
   defp encode_body(nil), do: {:ok, ""}
   defp encode_body(body), do: {:ok, to_string(body)}
 
-  defp handle_response({:ok, %HTTPoison.Response{body: body, status_code: status_code}})
-       when status_code in 200..299 do
-    {:ok, json_or_value(body)}
+  defp handle_raw_response({:ok, %HTTPoison.Response{body: body, status_code: status_code}}) do
+    {:ok, status_code, json_or_value(body)}
   end
 
-  defp handle_response({:ok, %HTTPoison.Response{body: body}}) do
-    {:error, json_or_value(body)}
-  end
-
-  defp handle_response({:error, %HTTPoison.Error{reason: reason}}) do
-    {:error, json_or_value(reason)}
+  defp handle_raw_response({:error, %HTTPoison.Error{reason: reason}}) do
+    {:error, reason}
   end
 
   defp json_or_value(data) when is_binary(data) do

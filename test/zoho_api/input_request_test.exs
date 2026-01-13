@@ -63,4 +63,61 @@ defmodule ZohoAPI.InputRequestTest do
       assert input.org_id == "org_123"
     end
   end
+
+  describe "with_refresh_token/2" do
+    test "sets refresh token" do
+      input =
+        InputRequest.new("token")
+        |> InputRequest.with_refresh_token("refresh_token_123")
+
+      assert input.refresh_token == "refresh_token_123"
+    end
+  end
+
+  describe "with_on_token_refresh/2" do
+    test "sets token refresh callback" do
+      callback = fn _new_token -> :ok end
+
+      input =
+        InputRequest.new("token")
+        |> InputRequest.with_on_token_refresh(callback)
+
+      assert input.on_token_refresh == callback
+    end
+  end
+
+  describe "with_retry_opts/2" do
+    test "sets retry options" do
+      input =
+        InputRequest.new("token")
+        |> InputRequest.with_retry_opts(max_retries: 5, base_delay_ms: 500)
+
+      assert input.retry_opts == [max_retries: 5, base_delay_ms: 500]
+    end
+  end
+
+  describe "with_rate_limit_opts/2" do
+    test "sets rate limit options" do
+      input =
+        InputRequest.new("token")
+        |> InputRequest.with_rate_limit_opts(enabled: false, key: "custom")
+
+      assert input.rate_limit_opts == [enabled: false, key: "custom"]
+    end
+  end
+
+  describe "with_region/2" do
+    test "sets region" do
+      input =
+        InputRequest.new("token")
+        |> InputRequest.with_region(:com)
+
+      assert input.region == :com
+    end
+
+    test "defaults to :in region" do
+      input = InputRequest.new("token")
+      assert input.region == :in
+    end
+  end
 end
