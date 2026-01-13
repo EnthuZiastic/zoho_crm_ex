@@ -49,6 +49,7 @@ defmodule ZohoAPI.Client do
   alias ZohoAPI.RateLimiter
   alias ZohoAPI.Request
   alias ZohoAPI.Retry
+  alias ZohoAPI.TokenCache
 
   @doc """
   Send a request with full feature support.
@@ -135,24 +136,36 @@ defmodule ZohoAPI.Client do
     end
   end
 
-  # Note: When multiple concurrent requests receive 401 errors, they may all attempt
-  # to refresh the token simultaneously. This is generally acceptable because:
-  # 1. Zoho's OAuth endpoint handles concurrent refresh requests gracefully
-  # 2. The on_token_refresh callback allows the application to implement its own
-  #    token caching/mutex logic (e.g., using a GenServer or ETS)
-  # 3. Each request will get a valid token and succeed
-  # For high-concurrency scenarios, consider implementing token caching at the
-  # application level using the on_token_refresh callback.
+  # Token refresh is coordinated through TokenCache (when running) to prevent
+  # multiple concurrent 401s from triggering simultaneous refresh requests.
+  # If TokenCache is not running, falls back to direct refresh (still works,
+  # but may make duplicate OAuth requests under high concurrency).
   defp do_token_refresh(request, input) do
     service = api_type_to_service(request.api_type)
 
-    case Token.refresh_access_token(input.refresh_token, service: service, region: input.region) do
-      {:ok, %{"access_token" => new_token}} ->
+    refresh_result =
+      if TokenCache.available?() do
+        # Use coordinated refresh through TokenCache
+        TokenCache.refresh_token(service, input.refresh_token, input.region, [])
+      else
+        # Fall back to direct refresh
+        case Token.refresh_access_token(input.refresh_token,
+               service: service,
+               region: input.region
+             ) do
+          {:ok, %{"access_token" => token}} -> {:ok, token}
+          {:ok, response} -> {:error, {:unexpected_response, response}}
+          {:error, reason} -> {:error, reason}
+        end
+      end
+
+    case refresh_result do
+      {:ok, new_token} ->
         notify_token_refresh(input.on_token_refresh, new_token)
         updated_request = Request.set_access_token(request, new_token)
         Request.send_raw(updated_request)
 
-      {:ok, response} ->
+      {:error, {:unexpected_response, response}} ->
         {:error, {:token_refresh_unexpected, response}}
 
       {:error, _reason} ->

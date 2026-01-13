@@ -102,8 +102,15 @@ defmodule ZohoAPI.Pagination do
 
   ## Error Handling
 
-  If a page fetch fails, the stream raises a `RuntimeError` with details.
-  To handle errors gracefully, wrap your stream operations in a try/rescue.
+  If a page fetch fails, the stream emits a `{:error, reason}` tuple and halts.
+  You can handle errors by filtering or using `Enum.reduce_while/3`:
+
+      input
+      |> Records.stream_all()
+      |> Enum.reduce_while([], fn
+        {:error, reason} -> {:halt, {:error, reason}}
+        record -> {:cont, [record | acc]}
+      end)
   """
   @spec stream_all(InputRequest.t(), fetch_fn(), keyword()) :: Enumerable.t()
   def stream_all(%InputRequest{} = input, fetch_fn, opts \\ []) do
@@ -165,13 +172,18 @@ defmodule ZohoAPI.Pagination do
   @spec fetch_all(InputRequest.t(), fetch_fn(), keyword()) ::
           {:ok, [map()]} | {:error, any()}
   def fetch_all(%InputRequest{} = input, fetch_fn, opts \\ []) do
-    records =
-      stream_all(input, fetch_fn, opts)
-      |> Enum.to_list()
+    stream_all(input, fetch_fn, opts)
+    |> Enum.reduce_while({:ok, []}, fn
+      {:error, reason}, _acc ->
+        {:halt, {:error, reason}}
 
-    {:ok, records}
-  rescue
-    e in RuntimeError -> {:error, e.message}
+      record, {:ok, records} ->
+        {:cont, {:ok, [record | records]}}
+    end)
+    |> case do
+      {:ok, records} -> {:ok, Enum.reverse(records)}
+      {:error, _} = error -> error
+    end
   end
 
   @doc """
@@ -250,8 +262,9 @@ defmodule ZohoAPI.Pagination do
         {[], %{state | done: true}}
 
       {:error, reason} ->
-        raise RuntimeError,
-          message: "Failed to fetch page #{state.page}: #{inspect(reason)}"
+        # Emit error tuple and halt the stream
+        error = {:error, %{page: state.page, reason: reason}}
+        {[error], %{state | done: true}}
     end
   end
 

@@ -132,16 +132,17 @@ defmodule ZohoAPI.PaginationTest do
       assert :counters.get(counter, 1) == 1
     end
 
-    test "raises on fetch error" do
+    test "emits error tuple on fetch error" do
       input = InputRequest.new("test_token")
 
       fetch_fn = fn _input ->
         {:error, "API error"}
       end
 
-      assert_raise RuntimeError, ~r/Failed to fetch page/, fn ->
-        Pagination.stream_all(input, fetch_fn) |> Enum.to_list()
-      end
+      result = Pagination.stream_all(input, fetch_fn) |> Enum.to_list()
+
+      # Stream emits error tuple and halts
+      assert result == [{:error, %{page: 1, reason: "API error"}}]
     end
   end
 

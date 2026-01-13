@@ -121,20 +121,24 @@ defmodule ZohoAPI.RateLimiter do
         request_fn.()
 
       is_nil(config.repo) ->
-        # Rate limiter enabled but no repo configured
-        Logger.warning(
-          "ZohoAPI.RateLimiter: enabled but no repo configured. " <>
-            "Rate limiting disabled. Configure :repo in :zoho_api, :rate_limiter"
-        )
+        # Rate limiter enabled but no repo configured - warn once
+        warn_once(:no_repo, fn ->
+          Logger.warning(
+            "ZohoAPI.RateLimiter: enabled but no repo configured. " <>
+              "Rate limiting disabled. Configure :repo in :zoho_api, :rate_limiter"
+          )
+        end)
 
         request_fn.()
 
       not rate_limiter_available?() ->
-        # RateLimiter dependency not available
-        Logger.warning(
-          "ZohoAPI.RateLimiter: enabled but rate_limiter dependency not installed. " <>
-            "Add {:rate_limiter, github: \"Enthuziastic/rate_limiter\"} to mix.exs"
-        )
+        # RateLimiter dependency not available - warn once
+        warn_once(:no_dependency, fn ->
+          Logger.warning(
+            "ZohoAPI.RateLimiter: enabled but rate_limiter dependency not installed. " <>
+              "Add {:rate_limiter, github: \"Enthuziastic/rate_limiter\"} to mix.exs"
+          )
+        end)
 
         request_fn.()
 
@@ -188,6 +192,47 @@ defmodule ZohoAPI.RateLimiter do
 
   defp rate_limiter_available? do
     Code.ensure_loaded?(RateLimiter)
+  end
+
+  # Warn only once per warning type to avoid log spam
+  @warn_key_prefix :zoho_api_rate_limiter_warned
+
+  defp warn_once(warning_type, warn_fn) do
+    key = {@warn_key_prefix, warning_type}
+
+    unless warned?(key) do
+      mark_warned(key)
+      warn_fn.()
+    end
+  end
+
+  defp warned?(key) do
+    :persistent_term.get(key)
+    true
+  rescue
+    ArgumentError -> false
+  end
+
+  defp mark_warned(key) do
+    :persistent_term.put(key, true)
+  end
+
+  @doc false
+  # Reset warnings - for testing purposes only
+  def reset_warnings do
+    try do
+      :persistent_term.erase({@warn_key_prefix, :no_repo})
+    rescue
+      ArgumentError -> :ok
+    end
+
+    try do
+      :persistent_term.erase({@warn_key_prefix, :no_dependency})
+    rescue
+      ArgumentError -> :ok
+    end
+
+    :ok
   end
 
   defp execute_with_rate_limiter(request_fn, config) do
