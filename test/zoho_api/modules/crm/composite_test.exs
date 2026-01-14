@@ -259,6 +259,20 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
 
       assert {:ok, _} = Composite.execute(input)
     end
+
+    test "returns error when parallel_execution is not a boolean" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "parallel_execution" => "false",
+          "__composite_requests" => [
+            %{"method" => "GET", "reference_id" => "ref_1", "url" => "/crm/v8/Leads"}
+          ]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "parallel_execution must be a boolean"
+    end
   end
 
   describe "build_request/4" do

@@ -42,7 +42,7 @@ defmodule ZohoAPI.Modules.CRM.Composite do
   Control parallel vs sequential execution using `parallel_execution`:
 
       %{
-        "parallel_execution" => false,  # Execute sequentially (default: true)
+        "parallel_execution" => false,  # false = sequential, true = parallel (default)
         "__composite_requests" => [...]
       }
 
@@ -219,12 +219,14 @@ defmodule ZohoAPI.Modules.CRM.Composite do
   The body should contain a `__composite_requests` array with up to 5 requests:
 
       %{
+        "parallel_execution" => true | false,  # Optional, default: true (parallel)
         "__composite_requests" => [
           %{
             "method" => "GET" | "POST" | "PUT" | "DELETE",
             "reference_id" => "unique_reference",
             "url" => "/crm/v8/ModuleName",
-            "body" => %{...}  # Optional, for POST/PUT
+            "body" => %{...},   # Optional, for POST/PUT requests
+            "params" => %{...}  # Optional, query parameters (e.g., search criteria)
           }
         ]
       }
@@ -261,20 +263,34 @@ defmodule ZohoAPI.Modules.CRM.Composite do
   defp validate_composite_requests(%{"__composite_requests" => []}),
     do: {:error, "At least one composite request is required"}
 
-  defp validate_composite_requests(%{"__composite_requests" => requests})
+  defp validate_composite_requests(%{"__composite_requests" => requests} = body)
        when is_list(requests) do
-    count = length(requests)
-
-    if count > @max_composite_requests do
-      {:error,
-       "Composite API supports a maximum of #{@max_composite_requests} requests, got #{count}"}
-    else
+    with :ok <- validate_parallel_execution(body),
+         :ok <- validate_request_count(requests) do
       validate_each_request(requests)
     end
   end
 
   defp validate_composite_requests(_) do
     {:error, "Body must contain __composite_requests array"}
+  end
+
+  defp validate_parallel_execution(%{"parallel_execution" => value})
+       when not is_boolean(value) do
+    {:error, "parallel_execution must be a boolean (true or false), got: #{inspect(value)}"}
+  end
+
+  defp validate_parallel_execution(_), do: :ok
+
+  defp validate_request_count(requests) do
+    count = length(requests)
+
+    if count > @max_composite_requests do
+      {:error,
+       "Composite API supports a maximum of #{@max_composite_requests} requests, got #{count}"}
+    else
+      :ok
+    end
   end
 
   defp validate_each_request(requests) do
