@@ -51,6 +51,10 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
       {:ok, result} = Composite.execute(input)
 
       assert length(result["__composite_responses"]) == 2
+      # Verify response structure matches expected reference_ids
+      [first, second] = result["__composite_responses"]
+      assert first["reference_id"] == "get_leads"
+      assert second["reference_id"] == "create_contact"
     end
 
     test "passes parallel_execution parameter correctly in request body" do
@@ -99,6 +103,10 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
       {:ok, result} = Composite.execute(input)
 
       assert length(result["__composite_responses"]) == 2
+      # Verify response structure matches expected reference_ids
+      [first, second] = result["__composite_responses"]
+      assert first["reference_id"] == "1"
+      assert second["reference_id"] == "2"
     end
   end
 
@@ -272,6 +280,44 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
 
       assert {:error, message} = Composite.execute(input)
       assert message =~ "parallel_execution must be a boolean"
+    end
+
+    test "returns error when using placeholders in parallel mode (default)" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "__composite_requests" => [
+            %{"method" => "GET", "reference_id" => "search", "url" => "/crm/v8/Contacts/search"},
+            %{
+              "method" => "PUT",
+              "reference_id" => "update",
+              "url" => "/crm/v8/Contacts/@{search:$.data[0].id}"
+            }
+          ]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "placeholders"
+      assert message =~ "parallel_execution: false"
+    end
+
+    test "returns error when using placeholders with explicit parallel_execution: true" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "parallel_execution" => true,
+          "__composite_requests" => [
+            %{"method" => "GET", "reference_id" => "search", "url" => "/crm/v8/Contacts/search"},
+            %{
+              "method" => "PUT",
+              "reference_id" => "update",
+              "url" => "/crm/v8/Contacts/@{search:$.data[0].id}"
+            }
+          ]
+        })
+
+      assert {:error, message} = Composite.execute(input)
+      assert message =~ "placeholders"
     end
   end
 
