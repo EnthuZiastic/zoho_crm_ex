@@ -42,7 +42,7 @@ defmodule ZohoAPI.Modules.CRM.Composite do
   Control parallel vs sequential execution using `parallel_execution`:
 
       %{
-        "parallel_execution" => false,  # false = sequential, true = parallel (default)
+        "parallel_execution" => false,  # Set false for sequential execution (default: true = parallel)
         "__composite_requests" => [...]
       }
 
@@ -63,7 +63,8 @@ defmodule ZohoAPI.Modules.CRM.Composite do
     - `$.json_path` - JSONPath expression to extract data from that response
 
   Common patterns:
-    - `@{1:$.data[0].id}` - Get the ID of the first record from request "1"
+    - `@{search_contact:$.data[0].id}` - Get the ID from request "search_contact"
+    - `@{1:$.data[0].id}` - Get the ID from request "1" (numeric reference_ids also work)
     - `@{search:$.data[0].Account_Name.id}` - Get a nested field value
 
   ### Error Handling in Sequential Mode
@@ -147,22 +148,22 @@ defmodule ZohoAPI.Modules.CRM.Composite do
       {:ok, result} = Composite.execute(input)
 
       # Sequential execution with data reference from previous request
-      # Note: If search returns no results (204), the @{1:$.data[0].id} placeholder
-      # will fail with INVALID_REFERENCE. See "Error Handling in Sequential Mode" above.
+      # Note: If search returns no results (204), the placeholder will fail with
+      # INVALID_REFERENCE. See "Error Handling in Sequential Mode" above.
       input = InputRequest.new("access_token")
       |> InputRequest.with_body(%{
         "parallel_execution" => false,
         "__composite_requests" => [
           %{
             "method" => "GET",
-            "reference_id" => "1",
+            "reference_id" => "search_contact",
             "url" => "/crm/v8/Contacts/search",
             "params" => %{"criteria" => "(Email:equals:test@example.com)"}
           },
           %{
             "method" => "PUT",
-            "reference_id" => "2",
-            "url" => "/crm/v8/Contacts/@{1:$.data[0].id}",
+            "reference_id" => "update_contact",
+            "url" => "/crm/v8/Contacts/@{search_contact:$.data[0].id}",
             "body" => %{"data" => [%{"Phone" => "555-1234"}]}
           }
         ]
@@ -266,7 +267,8 @@ defmodule ZohoAPI.Modules.CRM.Composite do
   defp validate_composite_requests(%{"__composite_requests" => requests} = body)
        when is_list(requests) do
     with :ok <- validate_parallel_execution(body),
-         :ok <- validate_request_count(requests) do
+         :ok <- validate_request_count(requests),
+         :ok <- validate_placeholder_usage(body) do
       validate_each_request(requests)
     end
   end
@@ -281,6 +283,34 @@ defmodule ZohoAPI.Modules.CRM.Composite do
   end
 
   defp validate_parallel_execution(_), do: :ok
+
+  # Validate that placeholders are not used in parallel mode (default)
+  # Placeholders like @{ref:$.path} only work in sequential mode
+  defp validate_placeholder_usage(%{
+         "parallel_execution" => false,
+         "__composite_requests" => _requests
+       }) do
+    :ok
+  end
+
+  defp validate_placeholder_usage(%{"__composite_requests" => requests}) do
+    has_placeholders =
+      Enum.any?(requests, fn
+        req when is_map(req) ->
+          url = Map.get(req, "url", "")
+          String.contains?(url, "@{")
+
+        _ ->
+          false
+      end)
+
+    if has_placeholders do
+      {:error,
+       "Data reference placeholders (@{...}) can only be used with parallel_execution: false (sequential mode)"}
+    else
+      :ok
+    end
+  end
 
   defp validate_request_count(requests) do
     count = length(requests)
