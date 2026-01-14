@@ -67,15 +67,50 @@ TestHelper.section("Token Management")
 
 access_token =
   if config[:access_token] do
-    IO.puts("Using provided access token")
-    config[:access_token]
-  else
-    IO.puts("Refreshing access token...")
+    IO.puts("Using provided access token, validating...")
 
-    case Token.refresh_access_token(refresh_token, service: :crm, region: config[:region]) do
+    case Token.validate_token(config[:access_token], service: :crm, region: config[:region]) do
+      :ok ->
+        IO.puts("[PASS] Token validated - has CRM scopes")
+        config[:access_token]
+
+      {:error, {:missing_scopes, :crm, message}} ->
+        IO.puts("[FAIL] Token validation failed:\n#{message}")
+        System.halt(1)
+
+      {:error, reason} ->
+        IO.puts("[FAIL] Token validation failed: #{inspect(reason)}")
+        System.halt(1)
+    end
+  else
+    IO.puts("Refreshing and validating access token...")
+
+    case Token.refresh_and_validate(refresh_token, service: :crm, region: config[:region]) do
       {:ok, %{"access_token" => token}} ->
-        IO.puts("[PASS] Token refreshed successfully")
+        IO.puts("[PASS] Token refreshed and validated - has CRM scopes")
         token
+
+      {:error, {:invalid_refresh_token, :crm, bad_token, message}} ->
+        IO.puts("""
+        [FAIL] Invalid refresh token - lacks CRM scopes
+
+        Problematic refresh token:
+          #{bad_token}
+
+        This refresh token maybe created without necessary CRM API scopes.
+        It cannot be fixed automatically - you must generate a new one.
+
+        #{message}
+        """)
+        System.halt(1)
+
+      {:error, {:invalid_client, message}} ->
+        IO.puts("[FAIL] Invalid OAuth client credentials: #{message}")
+        System.halt(1)
+
+      {:error, {:missing_scopes, :crm, message}} ->
+        IO.puts("[FAIL] Token lacks required CRM scopes:\n#{message}")
+        System.halt(1)
 
       {:error, reason} ->
         IO.puts("[FAIL] Token refresh failed: #{inspect(reason)}")

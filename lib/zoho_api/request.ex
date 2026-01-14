@@ -26,6 +26,8 @@ defmodule ZohoAPI.Request do
       |> Request.send()
   """
 
+  require Logger
+
   alias ZohoAPI.HTTPClient
   alias ZohoAPI.Regions
 
@@ -296,14 +298,21 @@ defmodule ZohoAPI.Request do
   """
   @spec send(t()) :: {:ok, any()} | {:error, any()}
   def send(%__MODULE__{} = r) do
+    url = construct_url(r)
+
     case send_raw(r) do
       {:ok, status_code, body} when status_code in 200..299 ->
         {:ok, body}
 
-      {:ok, _status_code, body} ->
+      {:ok, status_code, body} ->
+        log_error(r.method, url, status_code, body)
         {:error, body}
 
       {:error, reason} ->
+        Logger.error(
+          "[ZohoAPI] #{r.method |> to_string() |> String.upcase()} #{url} - Network error: #{inspect(reason)}"
+        )
+
         {:error, reason}
     end
   end
@@ -465,5 +474,101 @@ defmodule ZohoAPI.Request do
     encoded_params = URI.encode_query(params)
     separator = if String.contains?(base, "?"), do: "&", else: "?"
     "#{base}#{separator}#{encoded_params}"
+  end
+
+  # Log API errors with helpful context
+  defp log_error(method, url, status_code, body) when is_map(body) do
+    error_code = body["code"] || body["errorCode"] || "UNKNOWN"
+    message = body["message"] || "No message provided"
+
+    # For generic INVALID_REQUEST errors, try to diagnose the real cause
+    {diagnosed_code, diagnosed_hint} =
+      if error_code == "INVALID_REQUEST" and map_size(body["details"] || %{}) == 0 do
+        diagnose_invalid_request(url)
+      else
+        {error_code, error_hint(error_code)}
+      end
+
+    Logger.error("""
+    [ZohoAPI] #{method |> to_string() |> String.upcase()} #{url}
+      Status: #{status_code}
+      Error: #{diagnosed_code}
+      Message: #{message}#{diagnosed_hint}
+    """)
+  end
+
+  defp log_error(method, url, status_code, body) do
+    Logger.error(
+      "[ZohoAPI] #{method |> to_string() |> String.upcase()} #{url} - Status: #{status_code}, Body: #{inspect(body)}"
+    )
+  end
+
+  # Provide helpful hints for common Zoho error codes
+  defp error_hint("OAUTH_SCOPE_MISMATCH"),
+    do:
+      "\n      Hint: Your OAuth token lacks required scopes. Regenerate refresh token with proper scopes (e.g., ZohoCRM.modules.ALL)"
+
+  defp error_hint("SCOPE_MISMATCH"),
+    do:
+      "\n      Hint: Your OAuth token lacks required scopes. Regenerate refresh token with proper scopes"
+
+  defp error_hint("INVALID_TOKEN"),
+    do: "\n      Hint: Access token is invalid or expired. Try refreshing the token"
+
+  defp error_hint("AUTHENTICATION_FAILURE"),
+    do: "\n      Hint: Authentication failed. Check your access token and credentials"
+
+  defp error_hint("INVALID_REQUEST"),
+    do:
+      "\n      Hint: Request rejected. Common causes: wrong API version, missing scopes, or invalid endpoint"
+
+  defp error_hint("INVALID_DATA"),
+    do: "\n      Hint: Request body contains invalid data. Check field names and values"
+
+  defp error_hint("MANDATORY_NOT_FOUND"),
+    do: "\n      Hint: Required field is missing from the request body"
+
+  defp error_hint("INVALID_MODULE"),
+    do:
+      "\n      Hint: Module name is invalid. Check spelling (e.g., 'Leads', 'Contacts', 'Deals')"
+
+  defp error_hint("NO_PERMISSION"),
+    do: "\n      Hint: User lacks permission for this operation. Check Zoho CRM profile settings"
+
+  defp error_hint("RECORD_NOT_FOUND" <> _),
+    do: "\n      Hint: The requested record does not exist or was deleted"
+
+  defp error_hint(_), do: ""
+
+  # Diagnose generic INVALID_REQUEST errors by probing a diagnostic endpoint
+  # Zoho's /org endpoint returns more specific errors like OAUTH_SCOPE_MISMATCH
+  defp diagnose_invalid_request(url) do
+    # Extract base URL and check if it's a CRM request
+    uri = URI.parse(url)
+
+    cond do
+      String.contains?(uri.path || "", "/crm/") ->
+        # It's a CRM request - the most common cause is missing scopes
+        {"INVALID_REQUEST (likely OAUTH_SCOPE_MISMATCH)",
+         """
+
+               Hint: This generic error usually means your OAuth token lacks CRM scopes.
+               To fix: Regenerate your refresh token with proper scopes:
+                 1. Go to https://api-console.zoho.in (or .com for US)
+                 2. Generate code with scopes: ZohoCRM.modules.ALL,ZohoCRM.settings.ALL,ZohoCRM.users.ALL
+                 3. Exchange code for new refresh token
+         """}
+
+      String.contains?(uri.path || "", "/desk/") or String.contains?(uri.host || "", "desk.") ->
+        {"INVALID_REQUEST (likely SCOPE_MISMATCH)",
+         """
+
+               Hint: This generic error usually means your OAuth token lacks Desk scopes.
+               To fix: Regenerate your refresh token with Desk scopes (e.g., Desk.tickets.ALL)
+         """}
+
+      true ->
+        {"INVALID_REQUEST", error_hint("INVALID_REQUEST")}
+    end
   end
 end
