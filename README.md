@@ -211,6 +211,21 @@ input = InputRequest.new("access_token")
 })
 
 {:ok, %{"__composite_responses" => responses}} = Composite.execute(input)
+
+# Sequential execution with data reference (search + update)
+# IMPORTANT: Use "parallel_execution", NOT "concurrent_execution"
+input = InputRequest.new("access_token")
+|> InputRequest.with_body(%{
+  "parallel_execution" => false,
+  "__composite_requests" => [
+    %{"method" => "GET", "reference_id" => "1", "url" => "/crm/v8/Contacts/search",
+      "params" => %{"criteria" => "(Email:equals:test@example.com)"}},
+    %{"method" => "PUT", "reference_id" => "2", "url" => "/crm/v8/Contacts/@{1:$.data[0].id}",
+      "body" => %{"data" => [%{"Phone" => "555-1234"}]}}
+  ]
+})
+
+{:ok, result} = Composite.execute(input)
 ```
 
 ### Pagination
