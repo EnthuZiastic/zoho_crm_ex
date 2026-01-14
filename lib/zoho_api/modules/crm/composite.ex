@@ -21,7 +21,9 @@ defmodule ZohoAPI.Modules.CRM.Composite do
     - If request 3 of 5 fails, requests 1-2 may have already succeeded
     - Failed requests do not roll back previously successful requests
     - Each response in `__composite_responses` includes its own status code
-    - Later requests **cannot** reference data from earlier responses
+    - In parallel mode (default), requests cannot reference data from earlier responses
+    - In sequential mode (`parallel_execution: false`), later requests CAN reference
+      earlier responses using placeholder syntax (see "Execution Control" section)
 
   Always check individual response status codes:
 
@@ -34,6 +36,54 @@ defmodule ZohoAPI.Modules.CRM.Composite do
           code -> # Handle error for this specific request
         end
       end)
+
+  ## Execution Control
+
+  Control parallel vs sequential execution using `parallel_execution`:
+
+      %{
+        "parallel_execution" => false,  # Execute sequentially (default: true)
+        "__composite_requests" => [...]
+      }
+
+  **Important:** The parameter name is `parallel_execution`, NOT `concurrent_execution`.
+  Using `concurrent_execution` will cause an `INVALID_REQUEST` error from Zoho.
+
+  When `parallel_execution` is `false`, requests execute in order and later requests
+  can reference results from earlier requests using placeholder syntax.
+
+  ### Placeholder Syntax
+
+  Placeholders use JSONPath-like syntax to reference data from earlier responses:
+
+      @{reference_id:$.json_path}
+
+  Where:
+    - `reference_id` - The `reference_id` of the earlier request
+    - `$.json_path` - JSONPath expression to extract data from that response
+
+  Common patterns:
+    - `@{1:$.data[0].id}` - Get the ID of the first record from request "1"
+    - `@{search:$.data[0].Account_Name.id}` - Get a nested field value
+
+  ### Error Handling in Sequential Mode
+
+  When using sequential execution with data references, handle cases where earlier
+  requests return no data (e.g., search with no results):
+
+      # If the search returns 204 (no content), the placeholder @{1:$.data[0].id}
+      # will be invalid, causing an INVALID_REFERENCE error in the second request.
+      # Check for this in __composite_responses:
+      case result do
+        {:ok, %{"__composite_responses" => [
+          %{"status_code" => 204},  # Search found nothing
+          %{"code" => "INVALID_REFERENCE"}  # Reference couldn't resolve
+        ]}} ->
+          {:error, :not_found}
+
+        {:ok, %{"__composite_responses" => [_, %{"status_code" => 200}]}} ->
+          :ok
+      end
 
   ## Cleanup Strategies
 
@@ -72,21 +122,6 @@ defmodule ZohoAPI.Modules.CRM.Composite do
         end
       end
 
-  ## Execution Control
-
-  Control parallel vs sequential execution using `parallel_execution`:
-
-      %{
-        "parallel_execution" => false,  # Execute sequentially (default: true)
-        "__composite_requests" => [...]
-      }
-
-  **Important:** The parameter name is `parallel_execution`, NOT `concurrent_execution`.
-  Using `concurrent_execution` will cause an `INVALID_REQUEST` error from Zoho.
-
-  When `parallel_execution` is `false`, requests execute in order and later requests
-  can reference results from earlier requests using placeholders like `@{1:$.data[0].id}`.
-
   ## Examples
 
       # Execute multiple operations in one call (parallel)
@@ -112,6 +147,8 @@ defmodule ZohoAPI.Modules.CRM.Composite do
       {:ok, result} = Composite.execute(input)
 
       # Sequential execution with data reference from previous request
+      # Note: If search returns no results (204), the @{1:$.data[0].id} placeholder
+      # will fail with INVALID_REFERENCE. See "Error Handling in Sequential Mode" above.
       input = InputRequest.new("access_token")
       |> InputRequest.with_body(%{
         "parallel_execution" => false,
