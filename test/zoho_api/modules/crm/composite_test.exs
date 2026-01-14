@@ -52,6 +52,54 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
 
       assert length(result["__composite_responses"]) == 2
     end
+
+    test "passes parallel_execution parameter correctly in request body" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
+        assert url =~ "crm/v8/__composite_requests"
+        assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
+
+        body_map = Jason.decode!(body)
+        # Verify parallel_execution is passed through to the request body
+        assert body_map["parallel_execution"] == false
+        assert length(body_map["__composite_requests"]) == 2
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{
+               "__composite_responses" => [
+                 %{"reference_id" => "1", "status_code" => 200},
+                 %{"reference_id" => "2", "status_code" => 200}
+               ]
+             })
+         }}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{
+          "parallel_execution" => false,
+          "__composite_requests" => [
+            %{
+              "method" => "GET",
+              "reference_id" => "1",
+              "url" => "/crm/v8/Contacts/search",
+              "params" => %{"criteria" => "(Email:equals:test@example.com)"}
+            },
+            %{
+              "method" => "PUT",
+              "reference_id" => "2",
+              "url" => "/crm/v8/Contacts/@{1:$.data[0].id}",
+              "body" => %{"data" => [%{"Phone" => "555-1234"}]}
+            }
+          ]
+        })
+
+      {:ok, result} = Composite.execute(input)
+
+      assert length(result["__composite_responses"]) == 2
+    end
   end
 
   describe "execute/1 validation" do
