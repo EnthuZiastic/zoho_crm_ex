@@ -72,9 +72,24 @@ defmodule ZohoAPI.Modules.CRM.Composite do
         end
       end
 
+  ## Execution Control
+
+  Control parallel vs sequential execution using `parallel_execution`:
+
+      %{
+        "parallel_execution" => false,  # Execute sequentially (default: true)
+        "__composite_requests" => [...]
+      }
+
+  **Important:** The parameter name is `parallel_execution`, NOT `concurrent_execution`.
+  Using `concurrent_execution` will cause an `INVALID_REQUEST` error from Zoho.
+
+  When `parallel_execution` is `false`, requests execute in order and later requests
+  can reference results from earlier requests using placeholders like `@{1:$.data[0].id}`.
+
   ## Examples
 
-      # Execute multiple operations in one call
+      # Execute multiple operations in one call (parallel)
       input = InputRequest.new("access_token")
       |> InputRequest.with_body(%{
         "__composite_requests" => [
@@ -90,6 +105,28 @@ defmodule ZohoAPI.Modules.CRM.Composite do
             "body" => %{
               "data" => [%{"Last_Name" => "New Contact"}]
             }
+          }
+        ]
+      })
+
+      {:ok, result} = Composite.execute(input)
+
+      # Sequential execution with data reference from previous request
+      input = InputRequest.new("access_token")
+      |> InputRequest.with_body(%{
+        "parallel_execution" => false,
+        "__composite_requests" => [
+          %{
+            "method" => "GET",
+            "reference_id" => "1",
+            "url" => "/crm/v8/Contacts/search",
+            "params" => %{"criteria" => "(Email:equals:test@example.com)"}
+          },
+          %{
+            "method" => "PUT",
+            "reference_id" => "2",
+            "url" => "/crm/v8/Contacts/@{1:$.data[0].id}",
+            "body" => %{"data" => [%{"Phone" => "555-1234"}]}
           }
         ]
       })
