@@ -214,6 +214,7 @@ input = InputRequest.new("access_token")
 
 # Sequential execution with data reference (search + update)
 # IMPORTANT: Use "parallel_execution", NOT "concurrent_execution"
+# Note: If search returns 204 (no content), @{1:$.data[0].id} will fail with INVALID_REFERENCE
 input = InputRequest.new("access_token")
 |> InputRequest.with_body(%{
   "parallel_execution" => false,
