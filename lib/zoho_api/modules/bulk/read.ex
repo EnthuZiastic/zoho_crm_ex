@@ -73,7 +73,7 @@ defmodule ZohoAPI.Modules.Bulk.Read do
 
     - `input` - InputRequest with `body` containing query configuration
     - `opts` - Options:
-      - `:service` - `:crm` (default) or `:recruit`
+      - `:service` - **Required.** `:crm` or `:recruit`
 
   ## Body Format
 
@@ -104,8 +104,8 @@ defmodule ZohoAPI.Modules.Bulk.Read do
     - `{:error, reason}` on failure
   """
   @spec create_job(InputRequest.t(), keyword()) :: {:ok, map()} | {:error, any()}
-  def create_job(%InputRequest{} = r, opts \\ []) do
-    service = Keyword.get(opts, :service, :crm)
+  def create_job(%InputRequest{} = r, opts) do
+    service = Keyword.fetch!(opts, :service)
 
     construct_request(r, service)
     |> Request.with_path("read")
@@ -122,7 +122,7 @@ defmodule ZohoAPI.Modules.Bulk.Read do
     - `input` - InputRequest with access token
     - `job_id` - The bulk read job ID
     - `opts` - Options:
-      - `:service` - `:crm` (default) or `:recruit`
+      - `:service` - **Required.** `:crm` or `:recruit`
 
   ## Returns
 
@@ -143,14 +143,118 @@ defmodule ZohoAPI.Modules.Bulk.Read do
       }
   """
   @spec get_job_status(InputRequest.t(), String.t(), keyword()) :: {:ok, map()} | {:error, any()}
-  def get_job_status(%InputRequest{} = r, job_id, opts \\ []) do
-    service = Keyword.get(opts, :service, :crm)
+  def get_job_status(%InputRequest{} = r, job_id, opts) do
+    service = Keyword.fetch!(opts, :service)
 
     with :ok <- Validation.validate_id(job_id) do
       construct_request(r, service)
       |> Request.with_path("read/#{job_id}")
       |> Request.with_method(:get)
       |> Request.send()
+    end
+  end
+
+  @doc """
+  Polls for job completion until the job reaches a terminal state.
+
+  This convenience function repeatedly checks the job status until
+  it reaches `COMPLETED` or `FAILED`, saving you from implementing
+  your own polling logic.
+
+  ## Parameters
+
+    - `input` - InputRequest with access token
+    - `job_id` - The bulk read job ID
+    - `opts` - Options:
+      - `:service` - **Required.** `:crm` or `:recruit`
+      - `:interval` - Poll interval in milliseconds (default: 5000)
+      - `:max_attempts` - Maximum poll attempts (default: 60, ~5 minutes with default interval)
+
+  ## Returns
+
+    - `{:ok, result}` - When job completes successfully, returns the final status with download_url
+    - `{:error, :job_failed}` - When job fails
+    - `{:error, :timeout}` - When max_attempts is exceeded
+    - `{:error, reason}` - When API call fails
+
+  ## Examples
+
+      input = InputRequest.new("access_token")
+      {:ok, result} = BulkRead.wait_for_completion(input, job_id, service: :crm)
+      download_url = result["result"]["download_url"]
+  """
+  @spec wait_for_completion(InputRequest.t(), String.t(), keyword()) ::
+          {:ok, map()} | {:error, any()}
+  def wait_for_completion(%InputRequest{} = input, job_id, opts) do
+    _service = Keyword.fetch!(opts, :service)
+    interval = Keyword.get(opts, :interval, 5_000)
+    max_attempts = Keyword.get(opts, :max_attempts, 60)
+
+    do_poll(input, job_id, opts, interval, max_attempts, 0)
+  end
+
+  defp do_poll(_input, _job_id, _opts, _interval, max_attempts, attempt)
+       when attempt >= max_attempts do
+    {:error, :timeout}
+  end
+
+  defp do_poll(input, job_id, opts, interval, max_attempts, attempt) do
+    case get_job_status(input, job_id, opts) do
+      {:ok, %{"status" => "COMPLETED"} = result} ->
+        {:ok, result}
+
+      {:ok, %{"status" => "FAILED"}} ->
+        {:error, :job_failed}
+
+      {:ok, %{"status" => status}} when status in ["QUEUED", "IN_PROGRESS"] ->
+        Process.sleep(interval)
+        do_poll(input, job_id, opts, interval, max_attempts, attempt + 1)
+
+      {:error, _reason} = error ->
+        error
+    end
+  end
+
+  @doc """
+  Downloads the result file from a completed bulk read job.
+
+  After a job completes, use this function to download the CSV data
+  from the provided download URL.
+
+  ## Parameters
+
+    - `download_url` - The URL from the completed job's `result.download_url`
+    - `opts` - Options:
+      - `:timeout` - HTTP timeout in milliseconds (default: 120_000)
+
+  ## Returns
+
+    - `{:ok, binary}` - The raw CSV content as binary
+    - `{:error, reason}` - On failure
+
+  ## Examples
+
+      {:ok, result} = BulkRead.wait_for_completion(input, job_id, service: :crm)
+      {:ok, csv_data} = BulkRead.download_result(result["result"]["download_url"])
+
+      # Parse CSV data
+      csv_data
+      |> String.split("\\n")
+      |> Enum.map(&String.split(&1, ","))
+  """
+  @spec download_result(String.t(), keyword()) :: {:ok, binary()} | {:error, any()}
+  def download_result(download_url, opts \\ []) do
+    timeout = Keyword.get(opts, :timeout, 120_000)
+
+    case HTTPoison.get(download_url, [], recv_timeout: timeout) do
+      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+        {:ok, body}
+
+      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} ->
+        {:error, %{status_code: status_code, body: body}}
+
+      {:error, %HTTPoison.Error{reason: reason}} ->
+        {:error, reason}
     end
   end
 

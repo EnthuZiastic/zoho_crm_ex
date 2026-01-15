@@ -9,7 +9,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
   setup :verify_on_exit!
 
   describe "upload_file/3 for CRM" do
-    test "uploads a file for CRM bulk write (default service)" do
+    test "uploads a file for CRM bulk write" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
         assert url =~ "crm/bulk/v8/write/file"
         assert url =~ "module=Leads"
@@ -33,10 +33,20 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(csv_content)
 
-      {:ok, result} = Write.upload_file(input, "Leads")
+      {:ok, result} = Write.upload_file(input, "Leads", service: :crm)
 
       assert result["status"] == "success"
       assert result["details"]["file_id"] == "file_123"
+    end
+
+    test "requires service option" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body("csv,data")
+
+      assert_raise KeyError, ~r/:service/, fn ->
+        Write.upload_file(input, "Leads", [])
+      end
     end
   end
 
@@ -77,7 +87,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(large_body)
 
-      {:error, error} = Write.upload_file(input, "Leads")
+      {:error, error} = Write.upload_file(input, "Leads", service: :crm)
 
       assert error.code == "FILE_SIZE_EXCEEDED"
       assert error.message =~ "exceeds maximum"
@@ -88,7 +98,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(%{"not" => "binary"})
 
-      {:error, error} = Write.upload_file(input, "Leads")
+      {:error, error} = Write.upload_file(input, "Leads", service: :crm)
 
       assert error.code == "INVALID_FILE_BODY"
     end
@@ -132,7 +142,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(job_config)
 
-      {:ok, result} = Write.create_job(input)
+      {:ok, result} = Write.create_job(input, service: :crm)
 
       assert result["status"] == "ADDED"
       assert result["details"]["id"] == "write_job_123"
@@ -179,7 +189,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
       end)
 
       input = InputRequest.new("test_token")
-      {:ok, result} = Write.get_job_status(input, "job_123")
+      {:ok, result} = Write.get_job_status(input, "job_123", service: :crm)
 
       assert result["status"] == "COMPLETED"
     end
@@ -203,9 +213,76 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
 
     test "validates job_id" do
       input = InputRequest.new("test_token")
-      {:error, error} = Write.get_job_status(input, "invalid/id")
+      {:error, error} = Write.get_job_status(input, "invalid/id", service: :crm)
 
       assert error =~ "path separators not allowed"
+    end
+  end
+
+  describe "wait_for_completion/3" do
+    test "returns immediately when job is completed" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => "COMPLETED", "result" => %{}})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+
+      {:ok, result} =
+        Write.wait_for_completion(input, "job_123", service: :crm, interval: 10, max_attempts: 3)
+
+      assert result["status"] == "COMPLETED"
+    end
+
+    test "returns error when job fails" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => "FAILED"})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+
+      {:error, :job_failed} =
+        Write.wait_for_completion(input, "job_123", service: :crm, interval: 10, max_attempts: 3)
+    end
+
+    test "handles ADDED status as in-progress" do
+      # First call returns ADDED, second returns COMPLETED
+      {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+      expect(ZohoAPI.HTTPClientMock, :request, 2, fn :get, _url, _body, _headers, _opts ->
+        call_count = Agent.get_and_update(agent, fn count -> {count, count + 1} end)
+
+        status = if call_count == 0, do: "ADDED", else: "COMPLETED"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => status})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+
+      {:ok, result} =
+        Write.wait_for_completion(input, "job_123", service: :crm, interval: 10, max_attempts: 5)
+
+      assert result["status"] == "COMPLETED"
+      Agent.stop(agent)
+    end
+
+    test "requires service option" do
+      input = InputRequest.new("test_token")
+
+      assert_raise KeyError, ~r/:service/, fn ->
+        Write.wait_for_completion(input, "job_123", [])
+      end
     end
   end
 
@@ -219,7 +296,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(large_body)
 
-      {:error, error} = Write.upload_file(input, "Leads")
+      {:error, error} = Write.upload_file(input, "Leads", service: :crm)
 
       assert error.code == "FILE_SIZE_EXCEEDED"
     end
@@ -241,7 +318,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(body)
 
-      {:ok, result} = Write.upload_file(input, "Leads")
+      {:ok, result} = Write.upload_file(input, "Leads", service: :crm)
 
       assert result["status"] == "success"
     end
@@ -262,7 +339,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body("")
 
-      {:ok, result} = Write.upload_file(input, "Leads")
+      {:ok, result} = Write.upload_file(input, "Leads", service: :crm)
 
       assert result["details"]["file_id"] == "empty_file"
     end
