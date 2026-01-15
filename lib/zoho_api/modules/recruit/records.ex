@@ -359,6 +359,7 @@ defmodule ZohoAPI.Modules.Recruit.Records do
 
   defp construct_request(%InputRequest{} = ir) do
     Request.new("recruit")
+    |> Request.with_version("v2")
     |> Request.set_access_token(ir.access_token)
     |> Request.with_region(ir.region)
     |> Request.with_params(ir.query_params)

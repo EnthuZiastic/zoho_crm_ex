@@ -72,7 +72,7 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
   describe "create_job/2 for Recruit" do
     test "creates a bulk read job for Recruit" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/bulk/v8/read"
+        assert url =~ "recruit.zoho.in/recruit/bulk/v2/read"
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
         body_map = Jason.decode!(body)
@@ -111,7 +111,7 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
 
     test "uses correct region for Recruit bulk" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.com/recruit/bulk/v8/read"
+        assert url =~ "recruit.zoho.com/recruit/bulk/v2/read"
 
         {:ok,
          %HTTPoison.Response{
@@ -158,7 +158,7 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
 
     test "gets bulk read job status for Recruit" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/bulk/v8/read/recruit_job_123"
+        assert url =~ "recruit.zoho.in/recruit/bulk/v2/read/recruit_job_123"
 
         {:ok,
          %HTTPoison.Response{
