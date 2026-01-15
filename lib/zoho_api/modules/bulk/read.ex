@@ -144,13 +144,15 @@ defmodule ZohoAPI.Modules.Bulk.Read do
   end
 
   defp construct_request(%InputRequest{} = ir, service) do
-    api_type = api_type_for_service(service)
+    {api_type, version} = api_config_for_service(service)
 
     Request.new(api_type)
+    |> Request.with_version(version)
     |> Request.set_access_token(ir.access_token)
     |> Request.with_region(ir.region)
   end
 
-  defp api_type_for_service(:crm), do: "bulk"
-  defp api_type_for_service(:recruit), do: "recruit_bulk"
+  # CRM Bulk uses v8, Recruit Bulk uses v2
+  defp api_config_for_service(:crm), do: {"bulk", "v8"}
+  defp api_config_for_service(:recruit), do: {"recruit_bulk", "v2"}
 end

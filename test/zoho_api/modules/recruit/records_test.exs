@@ -11,7 +11,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
   describe "get_records/1" do
     test "gets records from a Recruit module" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/Candidates"
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates"
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
         {:ok,
@@ -38,7 +38,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
 
     test "respects region setting" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.com/recruit/v8/Candidates"
+        assert url =~ "recruit.zoho.com/recruit/v2/Candidates"
 
         {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"data" => []})}}
       end)
@@ -50,12 +50,55 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
 
       {:ok, _result} = Records.get_records(input)
     end
+
+    test "passes query_params for field filtering" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates"
+        assert url =~ "fields=Last_Name"
+        assert url =~ "fields=Email" or url =~ "Last_Name%2CEmail"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{
+               "data" => [%{"Last_Name" => "Smith", "Email" => "smith@example.com"}]
+             })
+         }}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_module_api_name("Candidates")
+        |> InputRequest.with_query_params(%{"fields" => "Last_Name,Email"})
+
+      {:ok, result} = Records.get_records(input)
+
+      assert length(result["data"]) == 1
+    end
+
+    test "passes multiple query_params" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates"
+        assert url =~ "page=2"
+        assert url =~ "per_page=50"
+
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"data" => []})}}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_module_api_name("Candidates")
+        |> InputRequest.with_query_params(%{"page" => 2, "per_page" => 50})
+
+      {:ok, _result} = Records.get_records(input)
+    end
   end
 
   describe "get_record/2" do
     test "gets a specific record by ID" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/Candidates/record_123"
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates/record_123"
 
         {:ok,
          %HTTPoison.Response{
@@ -87,7 +130,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
   describe "insert_records/1" do
     test "inserts new records" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/Candidates"
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates"
 
         body_map = Jason.decode!(body)
         assert body_map["data"] == [%{"Last_Name" => "Smith", "Email" => "smith@example.com"}]
@@ -116,7 +159,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
   describe "update_records/1" do
     test "updates existing records" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :put, url, body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/Candidates"
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates"
 
         body_map = Jason.decode!(body)
         assert hd(body_map["data"])["id"] == "record_123"
@@ -142,7 +185,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
   describe "upsert_records/2" do
     test "upserts records with duplicate check fields" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/Candidates/upsert"
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates/upsert"
 
         body_map = Jason.decode!(body)
         assert body_map["duplicate_check_fields"] == ["Email"]
@@ -163,12 +206,41 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
 
       assert hd(result["data"])["code"] == "SUCCESS"
     end
+
+    test "body has correct structure with data and duplicate_check_fields at same level" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, body, _headers, _opts ->
+        body_map = Jason.decode!(body)
+
+        # Verify data key contains the records array
+        assert is_list(body_map["data"])
+        assert hd(body_map["data"])["Email"] == "test@example.com"
+
+        # Verify duplicate_check_fields is at the same level as data
+        assert body_map["duplicate_check_fields"] == ["Email"]
+
+        # Verify no double-wrapping (data should not contain another data key)
+        refute is_map(body_map["data"]) and Map.has_key?(body_map["data"], "data")
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"data" => [%{"code" => "SUCCESS"}]})
+         }}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_module_api_name("Candidates")
+        |> InputRequest.with_body([%{"Email" => "test@example.com"}])
+
+      {:ok, _result} = Records.upsert_records(input, duplicate_check_fields: ["Email"])
+    end
   end
 
   describe "search_records/1" do
     test "searches records with criteria" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/Candidates/search"
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates/search"
         assert url =~ "criteria"
 
         {:ok,
@@ -192,7 +264,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
   describe "delete_records/1" do
     test "deletes records by IDs" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :delete, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/Candidates"
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates"
         # IDs are URL-encoded (comma becomes %2C)
         assert url =~ "ids=123" or url =~ "ids=123%2C456"
 
@@ -223,7 +295,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
   describe "get_associated_records/2" do
     test "gets associated records for a record" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/Candidates/record_123/associate"
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates/record_123/associate"
 
         {:ok,
          %HTTPoison.Response{
@@ -255,7 +327,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
   describe "deprecated functions" do
     test "get_recruit_records/1 delegates to get_records/1" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/Candidates"
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates"
 
         {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"data" => []})}}
       end)
@@ -269,7 +341,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
 
     test "insert_recruit_records/1 delegates to insert_records/1" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/Candidates"
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates"
 
         {:ok, %HTTPoison.Response{status_code: 201, body: Jason.encode!(%{"data" => []})}}
       end)
