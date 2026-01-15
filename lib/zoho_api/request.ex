@@ -15,6 +15,7 @@ defmodule ZohoAPI.Request do
     - `"oauth"` - Zoho OAuth API (v2)
     - `"portal"` - Zoho Projects API
     - `"bulk"` - Zoho CRM Bulk API (v8)
+    - `"recruit_bulk"` - Zoho Recruit Bulk API (v2)
     - `"composite"` - Zoho CRM Composite API (v8)
 
   ## Examples
@@ -447,10 +448,17 @@ defmodule ZohoAPI.Request do
     append_params(base, r.params)
   end
 
-  # Bulk API (Bulk Read/Write)
+  # CRM Bulk API (Bulk Read/Write)
   def construct_url(%__MODULE__{api_type: "bulk"} = r) do
     base_url = get_region_url(:zohoapis, r.region)
     base = "#{base_url}/crm/bulk/#{r.version}/#{r.path}"
+    append_params(base, r.params)
+  end
+
+  # Recruit Bulk API (Bulk Read/Write)
+  def construct_url(%__MODULE__{api_type: "recruit_bulk"} = r) do
+    base_url = get_region_url(:recruit, r.region)
+    base = "#{base_url}/recruit/#{r.version}/bulk/#{r.path}"
     append_params(base, r.params)
   end
 
