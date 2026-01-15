@@ -208,4 +208,75 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
       assert error =~ "path separators not allowed"
     end
   end
+
+  describe "edge cases" do
+    test "rejects file at exactly 25 MB boundary" do
+      # Create a body exactly at the 25MB limit (should be rejected)
+      boundary_size = 25 * 1024 * 1024 + 1
+      large_body = String.duplicate("x", boundary_size)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(large_body)
+
+      {:error, error} = Write.upload_file(input, "Leads")
+
+      assert error.code == "FILE_SIZE_EXCEEDED"
+    end
+
+    test "accepts file just under 25 MB limit" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => "success", "details" => %{"file_id" => "ok"}})
+         }}
+      end)
+
+      # Just under 25MB should succeed
+      under_limit_size = 25 * 1024 * 1024 - 1
+      body = String.duplicate("x", under_limit_size)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(body)
+
+      {:ok, result} = Write.upload_file(input, "Leads")
+
+      assert result["status"] == "success"
+    end
+
+    test "accepts empty file upload" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, body, _headers, _opts ->
+        assert body == ""
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{"status" => "success", "details" => %{"file_id" => "empty_file"}})
+         }}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body("")
+
+      {:ok, result} = Write.upload_file(input, "Leads")
+
+      assert result["details"]["file_id"] == "empty_file"
+    end
+
+    test "handles invalid service option gracefully" do
+      # Invalid service should raise FunctionClauseError since api_config_for_service
+      # only matches :crm and :recruit
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{"operation" => "insert", "resource" => []})
+
+      assert_raise FunctionClauseError, fn ->
+        Write.create_job(input, service: :invalid)
+      end
+    end
+  end
 end

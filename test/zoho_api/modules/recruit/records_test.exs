@@ -235,6 +235,32 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
 
       {:ok, _result} = Records.upsert_records(input, duplicate_check_fields: ["Email"])
     end
+
+    test "upsert_records without duplicate_check_fields omits the field" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers, _opts ->
+        assert url =~ "recruit.zoho.in/recruit/v2/Candidates/upsert"
+
+        body_map = Jason.decode!(body)
+        # When no duplicate_check_fields provided, the field should not be in the body
+        refute Map.has_key?(body_map, "duplicate_check_fields")
+        assert is_list(body_map["data"])
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"data" => [%{"code" => "SUCCESS"}]})
+         }}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_module_api_name("Candidates")
+        |> InputRequest.with_body([%{"Email" => "test@example.com"}])
+
+      {:ok, result} = Records.upsert_records(input)
+
+      assert hd(result["data"])["code"] == "SUCCESS"
+    end
   end
 
   describe "search_records/1" do

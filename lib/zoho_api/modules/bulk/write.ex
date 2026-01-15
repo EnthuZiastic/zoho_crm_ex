@@ -60,6 +60,18 @@ defmodule ZohoAPI.Modules.Bulk.Write do
       {:ok, %{"details" => %{"file_id" => file_id}}} = BulkWrite.upload_file(input, "Candidates", service: :recruit)
       {:ok, %{"details" => %{"id" => job_id}}} = BulkWrite.create_job(job_input, service: :recruit)
       {:ok, status} = BulkWrite.get_job_status(input, job_id, service: :recruit)
+
+  ## Timeout Considerations
+
+  File uploads and bulk operations may take longer than standard API calls,
+  especially when uploading files close to the 25 MB limit.
+  Consider using longer HTTP timeouts:
+
+      # Default HTTPoison timeout is 5 seconds which may be insufficient for large uploads
+      # Configure longer timeouts at the application level
+      config :zoho_api, :http_options, recv_timeout: 120_000  # 2 minutes
+
+  Polling for job completion is recommended rather than waiting for a single long request.
   """
 
   alias ZohoAPI.InputRequest
