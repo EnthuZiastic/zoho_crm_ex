@@ -9,7 +9,7 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
   setup :verify_on_exit!
 
   describe "create_job/2 for CRM" do
-    test "creates a bulk read job for CRM (default service)" do
+    test "creates a bulk read job for CRM" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
         assert url =~ "crm/bulk/v8/read"
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
@@ -42,13 +42,23 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(job_config)
 
-      {:ok, result} = Read.create_job(input)
+      {:ok, result} = Read.create_job(input, service: :crm)
 
       assert result["status"] == "ADDED"
       assert result["details"]["id"] == "job_456"
     end
 
-    test "creates a bulk read job for CRM with explicit service option" do
+    test "requires service option" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{"query" => %{}})
+
+      assert_raise KeyError, ~r/:service/, fn ->
+        Read.create_job(input, [])
+      end
+    end
+
+    test "creates a bulk read job for CRM with query fields" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, _body, _headers, _opts ->
         assert url =~ "crm/bulk/v8/read"
 
@@ -150,7 +160,7 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
       end)
 
       input = InputRequest.new("test_token")
-      {:ok, result} = Read.get_job_status(input, "job_456")
+      {:ok, result} = Read.get_job_status(input, "job_456", service: :crm)
 
       assert result["status"] == "COMPLETED"
       assert result["result"]["count"] == 1500
@@ -179,9 +189,96 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
 
     test "validates job_id" do
       input = InputRequest.new("test_token")
-      {:error, error} = Read.get_job_status(input, "../../../etc/passwd")
+      {:error, error} = Read.get_job_status(input, "../../../etc/passwd", service: :crm)
 
       assert error =~ "path traversal not allowed"
+    end
+  end
+
+  describe "wait_for_completion/3" do
+    test "returns immediately when job is completed" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{
+               "status" => "COMPLETED",
+               "result" => %{"download_url" => "https://example.com/download"}
+             })
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+
+      {:ok, result} =
+        Read.wait_for_completion(input, "job_123", service: :crm, interval: 10, max_attempts: 3)
+
+      assert result["status"] == "COMPLETED"
+      assert result["result"]["download_url"] == "https://example.com/download"
+    end
+
+    test "returns error when job fails" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => "FAILED"})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+
+      {:error, :job_failed} =
+        Read.wait_for_completion(input, "job_123", service: :crm, interval: 10, max_attempts: 3)
+    end
+
+    test "polls until completion" do
+      # First call returns IN_PROGRESS, second returns COMPLETED
+      {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+      expect(ZohoAPI.HTTPClientMock, :request, 2, fn :get, _url, _body, _headers, _opts ->
+        call_count = Agent.get_and_update(agent, fn count -> {count, count + 1} end)
+
+        status = if call_count == 0, do: "IN_PROGRESS", else: "COMPLETED"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => status, "result" => %{}})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+
+      {:ok, result} =
+        Read.wait_for_completion(input, "job_123", service: :crm, interval: 10, max_attempts: 5)
+
+      assert result["status"] == "COMPLETED"
+      Agent.stop(agent)
+    end
+
+    test "times out after max_attempts" do
+      expect(ZohoAPI.HTTPClientMock, :request, 2, fn :get, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => "IN_PROGRESS"})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+
+      {:error, :timeout} =
+        Read.wait_for_completion(input, "job_123", service: :crm, interval: 10, max_attempts: 2)
+    end
+
+    test "requires service option" do
+      input = InputRequest.new("test_token")
+
+      assert_raise KeyError, ~r/:service/, fn ->
+        Read.wait_for_completion(input, "job_123", [])
+      end
     end
   end
 
@@ -215,7 +312,7 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
         |> InputRequest.with_body(%{})
 
       # 400 responses return as error tuple
-      {:error, error} = Read.create_job(input)
+      {:error, error} = Read.create_job(input, service: :crm)
 
       assert error["code"] == "INVALID_DATA"
     end

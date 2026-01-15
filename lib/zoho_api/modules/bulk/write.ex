@@ -94,7 +94,7 @@ defmodule ZohoAPI.Modules.Bulk.Write do
     - `input` - InputRequest with `body` containing the file content
     - `module_name` - The target module API name (e.g., "Leads", "Candidates")
     - `opts` - Options:
-      - `:service` - `:crm` (default) or `:recruit`
+      - `:service` - **Required.** `:crm` or `:recruit`
 
   ## Memory Considerations
 
@@ -123,8 +123,8 @@ defmodule ZohoAPI.Modules.Bulk.Write do
     - `{:error, reason}` on failure
   """
   @spec upload_file(InputRequest.t(), String.t(), keyword()) :: {:ok, map()} | {:error, any()}
-  def upload_file(%InputRequest{} = r, module_name, opts \\ []) do
-    service = Keyword.get(opts, :service, :crm)
+  def upload_file(%InputRequest{} = r, module_name, opts) do
+    service = Keyword.fetch!(opts, :service)
 
     with :ok <- validate_file_size(r.body) do
       construct_request(r, service)
@@ -146,7 +146,7 @@ defmodule ZohoAPI.Modules.Bulk.Write do
       - `operation` - "insert", "update", or "upsert"
       - `resource` - Array of resource configurations
     - `opts` - Options:
-      - `:service` - `:crm` (default) or `:recruit`
+      - `:service` - **Required.** `:crm` or `:recruit`
 
   ## Body Format
 
@@ -169,8 +169,8 @@ defmodule ZohoAPI.Modules.Bulk.Write do
     - `{:ok, %{"status" => "ADDED", "details" => %{"id" => "job_id"}}}` on success
   """
   @spec create_job(InputRequest.t(), keyword()) :: {:ok, map()} | {:error, any()}
-  def create_job(%InputRequest{} = r, opts \\ []) do
-    service = Keyword.get(opts, :service, :crm)
+  def create_job(%InputRequest{} = r, opts) do
+    service = Keyword.fetch!(opts, :service)
 
     construct_request(r, service)
     |> Request.with_path("write")
@@ -187,21 +187,81 @@ defmodule ZohoAPI.Modules.Bulk.Write do
     - `input` - InputRequest with access token
     - `job_id` - The bulk write job ID
     - `opts` - Options:
-      - `:service` - `:crm` (default) or `:recruit`
+      - `:service` - **Required.** `:crm` or `:recruit`
 
   ## Returns
 
     - `{:ok, %{"status" => "COMPLETED" | "IN_PROGRESS" | "QUEUED" | ...}}`
   """
   @spec get_job_status(InputRequest.t(), String.t(), keyword()) :: {:ok, map()} | {:error, any()}
-  def get_job_status(%InputRequest{} = r, job_id, opts \\ []) do
-    service = Keyword.get(opts, :service, :crm)
+  def get_job_status(%InputRequest{} = r, job_id, opts) do
+    service = Keyword.fetch!(opts, :service)
 
     with :ok <- Validation.validate_id(job_id) do
       construct_request(r, service)
       |> Request.with_path("write/#{job_id}")
       |> Request.with_method(:get)
       |> Request.send()
+    end
+  end
+
+  @doc """
+  Polls for job completion until the job reaches a terminal state.
+
+  This convenience function repeatedly checks the job status until
+  it reaches `COMPLETED` or `FAILED`, saving you from implementing
+  your own polling logic.
+
+  ## Parameters
+
+    - `input` - InputRequest with access token
+    - `job_id` - The bulk write job ID
+    - `opts` - Options:
+      - `:service` - **Required.** `:crm` or `:recruit`
+      - `:interval` - Poll interval in milliseconds (default: 5000)
+      - `:max_attempts` - Maximum poll attempts (default: 60, ~5 minutes with default interval)
+
+  ## Returns
+
+    - `{:ok, result}` - When job completes successfully
+    - `{:error, :job_failed}` - When job fails
+    - `{:error, :timeout}` - When max_attempts is exceeded
+    - `{:error, reason}` - When API call fails
+
+  ## Examples
+
+      input = InputRequest.new("access_token")
+      {:ok, result} = BulkWrite.wait_for_completion(input, job_id, service: :crm)
+  """
+  @spec wait_for_completion(InputRequest.t(), String.t(), keyword()) ::
+          {:ok, map()} | {:error, any()}
+  def wait_for_completion(%InputRequest{} = input, job_id, opts) do
+    _service = Keyword.fetch!(opts, :service)
+    interval = Keyword.get(opts, :interval, 5_000)
+    max_attempts = Keyword.get(opts, :max_attempts, 60)
+
+    do_poll(input, job_id, opts, interval, max_attempts, 0)
+  end
+
+  defp do_poll(_input, _job_id, _opts, _interval, max_attempts, attempt)
+       when attempt >= max_attempts do
+    {:error, :timeout}
+  end
+
+  defp do_poll(input, job_id, opts, interval, max_attempts, attempt) do
+    case get_job_status(input, job_id, opts) do
+      {:ok, %{"status" => "COMPLETED"} = result} ->
+        {:ok, result}
+
+      {:ok, %{"status" => "FAILED"}} ->
+        {:error, :job_failed}
+
+      {:ok, %{"status" => status}} when status in ["QUEUED", "IN_PROGRESS", "ADDED"] ->
+        Process.sleep(interval)
+        do_poll(input, job_id, opts, interval, max_attempts, attempt + 1)
+
+      {:error, _reason} = error ->
+        error
     end
   end
 
