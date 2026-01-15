@@ -43,7 +43,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
   describe "upload_file/3 for Recruit" do
     test "uploads a file for Recruit bulk write" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, _body, headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/bulk/write/file"
+        assert url =~ "recruit.zoho.in/recruit/bulk/v8/write/file"
         assert url =~ "module=Candidates"
         assert {"Content-Type", "text/csv"} in headers
 
@@ -142,7 +142,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
   describe "create_job/2 for Recruit" do
     test "creates a bulk write job for Recruit" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/bulk/write"
+        assert url =~ "recruit.zoho.in/recruit/bulk/v8/write"
         refute url =~ "write/file"
 
         {:ok,
@@ -186,7 +186,7 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
 
     test "gets bulk write job status for Recruit" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
-        assert url =~ "recruit.zoho.in/recruit/v8/bulk/write/recruit_job_456"
+        assert url =~ "recruit.zoho.in/recruit/bulk/v8/write/recruit_job_456"
 
         {:ok,
          %HTTPoison.Response{

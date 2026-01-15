@@ -75,7 +75,7 @@ defmodule ZohoAPI.RequestTest do
         |> Request.with_path("read")
         |> Request.construct_url()
 
-      assert url == "https://recruit.zoho.in/recruit/v2/bulk/read"
+      assert url == "https://recruit.zoho.in/recruit/bulk/v2/read"
     end
 
     test "constructs Recruit Bulk API URL with region" do
@@ -86,7 +86,7 @@ defmodule ZohoAPI.RequestTest do
         |> Request.with_region(:com)
         |> Request.construct_url()
 
-      assert url == "https://recruit.zoho.com/recruit/v2/bulk/write"
+      assert url == "https://recruit.zoho.com/recruit/bulk/v2/write"
     end
 
     test "constructs Composite API URL" do

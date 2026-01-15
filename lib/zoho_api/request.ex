@@ -456,9 +456,10 @@ defmodule ZohoAPI.Request do
   end
 
   # Recruit Bulk API (Bulk Read/Write)
+  # URL pattern: https://recruit.zoho.{region}/recruit/bulk/v2/{path}
   def construct_url(%__MODULE__{api_type: "recruit_bulk"} = r) do
     base_url = get_region_url(:recruit, r.region)
-    base = "#{base_url}/recruit/#{r.version}/bulk/#{r.path}"
+    base = "#{base_url}/recruit/bulk/#{r.version}/#{r.path}"
     append_params(base, r.params)
   end
 
