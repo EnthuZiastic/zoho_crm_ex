@@ -2,6 +2,9 @@ defmodule ZohoAPI.Modules.CRM.BulkWrite do
   @moduledoc """
   Zoho CRM Bulk Write API.
 
+  This module provides CRM-specific bulk write operations. For a generic
+  bulk write API that supports multiple services, see `ZohoAPI.Modules.Bulk.Write`.
+
   The Bulk Write API enables you to insert, update, or upsert up to 25,000
   records in a single operation. The process involves:
 
@@ -54,8 +57,7 @@ defmodule ZohoAPI.Modules.CRM.BulkWrite do
   """
 
   alias ZohoAPI.InputRequest
-  alias ZohoAPI.Request
-  alias ZohoAPI.Validation
+  alias ZohoAPI.Modules.Bulk
 
   @doc """
   Uploads a CSV or ZIP file for bulk write operations.
@@ -94,53 +96,10 @@ defmodule ZohoAPI.Modules.CRM.BulkWrite do
     - `{:ok, %{"status" => "success", "details" => %{"file_id" => "..."}}}` on success
     - `{:error, reason}` on failure
   """
-  # Maximum file size for bulk write uploads (25MB)
-  @max_file_size 25 * 1024 * 1024
-
   @spec upload_file(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def upload_file(%InputRequest{} = r, module_name) do
-    with :ok <- validate_file_size(r.body) do
-      Request.new("bulk")
-      |> Request.set_access_token(r.access_token)
-      |> Request.with_path("write/file")
-      |> Request.with_params(%{"module" => module_name})
-      |> Request.set_headers(%{"Content-Type" => "text/csv"})
-      |> Request.with_body(r.body)
-      |> Request.with_method(:post)
-      |> Request.send()
-    end
+    Bulk.Write.upload_file(r, module_name, service: :crm)
   end
-
-  defp validate_file_size(body) when is_binary(body) do
-    size = byte_size(body)
-
-    if size > @max_file_size do
-      {:error,
-       %{
-         code: "FILE_SIZE_EXCEEDED",
-         message:
-           "File size #{format_size(size)} exceeds maximum allowed size of #{format_size(@max_file_size)}",
-         details: %{
-           actual_size: size,
-           max_size: @max_file_size
-         }
-       }}
-    else
-      :ok
-    end
-  end
-
-  defp validate_file_size(_) do
-    {:error,
-     %{
-       code: "INVALID_FILE_BODY",
-       message: "File body must be binary data"
-     }}
-  end
-
-  defp format_size(bytes) when bytes < 1024, do: "#{bytes} B"
-  defp format_size(bytes) when bytes < 1024 * 1024, do: "#{Float.round(bytes / 1024, 1)} KB"
-  defp format_size(bytes), do: "#{Float.round(bytes / (1024 * 1024), 1)} MB"
 
   @doc """
   Creates a bulk write job.
@@ -173,12 +132,7 @@ defmodule ZohoAPI.Modules.CRM.BulkWrite do
   """
   @spec create_job(InputRequest.t()) :: {:ok, map()} | {:error, any()}
   def create_job(%InputRequest{} = r) do
-    Request.new("bulk")
-    |> Request.set_access_token(r.access_token)
-    |> Request.with_path("write")
-    |> Request.with_body(r.body)
-    |> Request.with_method(:post)
-    |> Request.send()
+    Bulk.Write.create_job(r, service: :crm)
   end
 
   @doc """
@@ -195,12 +149,6 @@ defmodule ZohoAPI.Modules.CRM.BulkWrite do
   """
   @spec get_job_status(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def get_job_status(%InputRequest{} = r, job_id) do
-    with :ok <- Validation.validate_id(job_id) do
-      Request.new("bulk")
-      |> Request.set_access_token(r.access_token)
-      |> Request.with_path("write/#{job_id}")
-      |> Request.with_method(:get)
-      |> Request.send()
-    end
+    Bulk.Write.get_job_status(r, job_id, service: :crm)
   end
 end

@@ -59,13 +59,34 @@ defmodule ZohoAPI.RequestTest do
       assert url == "https://www.zohoapis.in/workdrive/api/v1/files"
     end
 
-    test "constructs Bulk API URL" do
+    test "constructs CRM Bulk API URL" do
       url =
         Request.new("bulk")
         |> Request.with_path("read")
         |> Request.construct_url()
 
       assert url == "https://www.zohoapis.in/crm/bulk/v8/read"
+    end
+
+    test "constructs Recruit Bulk API URL" do
+      url =
+        Request.new("recruit_bulk")
+        |> Request.with_version("v2")
+        |> Request.with_path("read")
+        |> Request.construct_url()
+
+      assert url == "https://recruit.zoho.in/recruit/v2/bulk/read"
+    end
+
+    test "constructs Recruit Bulk API URL with region" do
+      url =
+        Request.new("recruit_bulk")
+        |> Request.with_version("v2")
+        |> Request.with_path("write")
+        |> Request.with_region(:com)
+        |> Request.construct_url()
+
+      assert url == "https://recruit.zoho.com/recruit/v2/bulk/write"
     end
 
     test "constructs Composite API URL" do

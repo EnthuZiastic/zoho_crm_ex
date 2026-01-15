@@ -2,6 +2,9 @@ defmodule ZohoAPI.Modules.CRM.BulkRead do
   @moduledoc """
   Zoho CRM Bulk Read API.
 
+  This module provides CRM-specific bulk read operations. For a generic
+  bulk read API that supports multiple services, see `ZohoAPI.Modules.Bulk.Read`.
+
   The Bulk Read API enables you to export up to 200,000 records from
   a CRM module. The process involves:
 
@@ -40,8 +43,7 @@ defmodule ZohoAPI.Modules.CRM.BulkRead do
   """
 
   alias ZohoAPI.InputRequest
-  alias ZohoAPI.Request
-  alias ZohoAPI.Validation
+  alias ZohoAPI.Modules.Bulk
 
   @doc """
   Creates a bulk read job.
@@ -80,12 +82,7 @@ defmodule ZohoAPI.Modules.CRM.BulkRead do
   """
   @spec create_job(InputRequest.t()) :: {:ok, map()} | {:error, any()}
   def create_job(%InputRequest{} = r) do
-    Request.new("bulk")
-    |> Request.set_access_token(r.access_token)
-    |> Request.with_path("read")
-    |> Request.with_body(r.body)
-    |> Request.with_method(:post)
-    |> Request.send()
+    Bulk.Read.create_job(r, service: :crm)
   end
 
   @doc """
@@ -116,12 +113,6 @@ defmodule ZohoAPI.Modules.CRM.BulkRead do
   """
   @spec get_job_status(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
   def get_job_status(%InputRequest{} = r, job_id) do
-    with :ok <- Validation.validate_id(job_id) do
-      Request.new("bulk")
-      |> Request.set_access_token(r.access_token)
-      |> Request.with_path("read/#{job_id}")
-      |> Request.with_method(:get)
-      |> Request.send()
-    end
+    Bulk.Read.get_job_status(r, job_id, service: :crm)
   end
 end
