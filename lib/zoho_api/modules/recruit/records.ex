@@ -339,18 +339,22 @@ defmodule ZohoAPI.Modules.Recruit.Records do
 
   @doc false
   @deprecated "Use get_records/1 instead"
+  @spec get_recruit_records(InputRequest.t()) :: {:ok, map()} | {:error, any()}
   def get_recruit_records(%InputRequest{} = r), do: get_records(r)
 
   @doc false
   @deprecated "Use insert_records/1 instead"
+  @spec insert_recruit_records(InputRequest.t()) :: {:ok, map()} | {:error, any()}
   def insert_recruit_records(%InputRequest{} = r), do: insert_records(r)
 
   @doc false
   @deprecated "Use update_records/1 instead"
+  @spec update_recruit_records(InputRequest.t()) :: {:ok, map()} | {:error, any()}
   def update_recruit_records(%InputRequest{} = r), do: update_records(r)
 
   @doc false
   @deprecated "Use search_records/1 instead"
+  @spec search_recruit_records(InputRequest.t()) :: {:ok, map()} | {:error, any()}
   def search_recruit_records(%InputRequest{} = r), do: search_records(r)
 
   defp construct_request(%InputRequest{} = ir) do
