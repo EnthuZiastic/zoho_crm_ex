@@ -184,4 +184,40 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
       assert error =~ "path traversal not allowed"
     end
   end
+
+  describe "edge cases" do
+    test "handles invalid service option gracefully" do
+      # Invalid service should raise FunctionClauseError since api_config_for_service
+      # only matches :crm and :recruit
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{"query" => %{}})
+
+      assert_raise FunctionClauseError, fn ->
+        Read.create_job(input, service: :invalid)
+      end
+    end
+
+    test "handles empty body for job creation" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, body, _headers, _opts ->
+        body_map = Jason.decode!(body)
+        assert body_map == %{}
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 400,
+           body: Jason.encode!(%{"code" => "INVALID_DATA", "message" => "query is required"})
+         }}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{})
+
+      # 400 responses return as error tuple
+      {:error, error} = Read.create_job(input)
+
+      assert error["code"] == "INVALID_DATA"
+    end
+  end
 end

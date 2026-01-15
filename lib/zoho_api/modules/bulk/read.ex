@@ -47,6 +47,17 @@ defmodule ZohoAPI.Modules.Bulk.Read do
 
       # Check job status
       {:ok, status} = BulkRead.get_job_status(input, job_id, service: :recruit)
+
+  ## Timeout Considerations
+
+  Bulk operations process large datasets and may take longer than standard API calls.
+  Consider using longer HTTP timeouts when working with bulk operations:
+
+      # Default HTTPoison timeout is 5 seconds which may be insufficient
+      # Configure longer timeouts at the application level or use recv_timeout option
+      config :zoho_api, :http_options, recv_timeout: 120_000  # 2 minutes
+
+  Polling for job completion is recommended rather than waiting for a single long request.
   """
 
   alias ZohoAPI.InputRequest
