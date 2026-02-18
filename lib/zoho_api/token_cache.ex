@@ -83,27 +83,30 @@ defmodule ZohoAPI.TokenCache do
   If another process is already refreshing the same service token, this call
   waits for that refresh to complete rather than issuing a duplicate request.
 
+  The GenServer name is resolved via `config :zoho_api, :token_cache, name: ...`,
+  defaulting to `ZohoAPI.TokenCache`. This allows enthu-backend to register
+  the cache under Horde for cluster-wide sharing without any changes to call sites.
+
   ## Parameters
 
     - `service` - The Zoho service (`:crm`, `:project`, `:meeting`, etc.)
-    - `opts` - Optional keyword list:
-      - `:name` - GenServer name (default: `__MODULE__`). Use for Horde-registered instances.
-      - `:timeout` - GenServer call timeout in ms (default: 60_000)
 
   ## Returns
 
     - `{:ok, access_token}` on success
     - `{:error, reason}` on failure
-  """
-  @spec get_or_refresh(atom(), keyword()) :: {:ok, String.t()} | {:error, any()}
-  def get_or_refresh(service, opts \\ []) do
-    {name, opts} = Keyword.pop(opts, :name, __MODULE__)
 
-    case get_token(service, name: name) do
+  ## Examples
+
+      {:ok, token} = ZohoAPI.TokenCache.get_or_refresh(:crm)
+  """
+  @spec get_or_refresh(atom()) :: {:ok, String.t()} | {:error, any()}
+  def get_or_refresh(service) do
+    case get_token(service) do
       nil ->
         cfg = Config.get_config(service)
         region = cfg.region || :in
-        refresh_token(service, cfg.refresh_token, region, [{:name, name} | opts])
+        do_refresh(service, cfg.refresh_token, region)
 
       token ->
         {:ok, token}
@@ -121,10 +124,7 @@ defmodule ZohoAPI.TokenCache do
     - `service` - The Zoho service (`:crm`, `:desk`, `:recruit`, etc.)
     - `refresh_token` - The OAuth refresh token
     - `region` - The Zoho region (`:in`, `:com`, `:eu`, etc.)
-    - `opts` - Optional keyword list:
-      - `:name` - GenServer name (default: `__MODULE__`). Use for Horde-registered instances.
-      - `:timeout` - GenServer call timeout in ms (default: 60_000)
-      - Other options passed to `Token.refresh_access_token/2`
+    - `opts` - Optional keyword list with options passed to `Token.refresh_access_token/2`
 
   ## Returns
 
@@ -134,9 +134,18 @@ defmodule ZohoAPI.TokenCache do
   @spec refresh_token(atom(), String.t(), atom(), keyword()) ::
           {:ok, String.t()} | {:error, any()}
   def refresh_token(service, refresh_token, region, opts \\ []) do
-    {name, opts} = Keyword.pop(opts, :name, __MODULE__)
-    {timeout, token_opts} = Keyword.pop(opts, :timeout, get_refresh_timeout())
-    GenServer.call(name, {:refresh, service, refresh_token, region, token_opts}, timeout)
+    do_refresh(service, refresh_token, region, opts)
+  end
+
+  defp do_refresh(service, refresh_token, region, opts \\ []) do
+    timeout = Keyword.get(opts, :timeout, get_refresh_timeout())
+    token_opts = Keyword.delete(opts, :timeout)
+    GenServer.call(cache_name(), {:refresh, service, refresh_token, region, token_opts}, timeout)
+  end
+
+  defp cache_name do
+    Application.get_env(:zoho_api, :token_cache, [])
+    |> Keyword.get(:name, __MODULE__)
   end
 
   defp get_refresh_timeout do
@@ -148,17 +157,10 @@ defmodule ZohoAPI.TokenCache do
   Gets a cached token without triggering a refresh.
 
   Returns `nil` if no token is cached or if the cached token has expired.
-
-  ## Parameters
-
-    - `service` - The Zoho service atom
-    - `opts` - Optional keyword list:
-      - `:name` - GenServer name (default: `__MODULE__`)
   """
-  @spec get_token(atom(), keyword()) :: String.t() | nil
-  def get_token(service, opts \\ []) do
-    name = Keyword.get(opts, :name, __MODULE__)
-    GenServer.call(name, {:get, service})
+  @spec get_token(atom()) :: String.t() | nil
+  def get_token(service) do
+    GenServer.call(cache_name(), {:get, service})
   end
 
   @doc """
@@ -168,24 +170,17 @@ defmodule ZohoAPI.TokenCache do
   """
   @spec put_token(atom(), String.t()) :: :ok
   def put_token(service, access_token) do
-    GenServer.cast(__MODULE__, {:put, service, access_token})
+    GenServer.cast(cache_name(), {:put, service, access_token})
   end
 
   @doc """
   Invalidates the cached token for a service.
 
   Call this when you know a token is invalid (e.g., after receiving a 401).
-
-  ## Parameters
-
-    - `service` - The Zoho service atom
-    - `opts` - Optional keyword list:
-      - `:name` - GenServer name (default: `__MODULE__`)
   """
-  @spec invalidate(atom(), keyword()) :: :ok
-  def invalidate(service, opts \\ []) do
-    name = Keyword.get(opts, :name, __MODULE__)
-    GenServer.cast(name, {:invalidate, service})
+  @spec invalidate(atom()) :: :ok
+  def invalidate(service) do
+    GenServer.cast(cache_name(), {:invalidate, service})
   end
 
   @doc """
