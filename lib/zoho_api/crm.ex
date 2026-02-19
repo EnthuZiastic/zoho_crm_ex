@@ -20,6 +20,7 @@ defmodule ZohoAPI.CRM do
   """
 
   alias ZohoAPI.InputRequest
+  alias ZohoAPI.Modules.CRM.Composite
   alias ZohoAPI.Modules.CRM.Records
   alias ZohoAPI.TokenCache
 
@@ -92,6 +93,15 @@ defmodule ZohoAPI.CRM do
       token
       |> InputRequest.new(nil, %{}, %{"select_query" => query})
       |> Records.coql_query()
+    end
+  end
+
+  @spec composite_request(map()) :: {:ok, map()} | {:error, any()}
+  def composite_request(body) do
+    with {:ok, token} <- TokenCache.get_or_refresh(:crm) do
+      token
+      |> InputRequest.new(nil, %{}, body)
+      |> Composite.execute()
     end
   end
 end
