@@ -90,6 +90,17 @@ defmodule ZohoAPI.Regions do
       uk: "https://projectsapi.zoho.uk",
       ca: "https://projectsapi.zohocloud.ca",
       sa: "https://projectsapi.zoho.sa"
+    },
+    # Zoho Cliq
+    cliq: %{
+      in: "https://cliq.zoho.in",
+      com: "https://cliq.zoho.com",
+      eu: "https://cliq.zoho.eu",
+      au: "https://cliq.zoho.com.au",
+      jp: "https://cliq.zoho.jp",
+      uk: "https://cliq.zoho.uk",
+      ca: "https://cliq.zohocloud.ca",
+      sa: "https://cliq.zoho.sa"
     }
   }
 
