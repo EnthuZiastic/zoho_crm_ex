@@ -104,9 +104,13 @@ defmodule ZohoAPI.TokenCache do
   def get_or_refresh(service) do
     case get_token(service) do
       nil ->
-        cfg = Config.get_config(service)
-        region = cfg.region || :in
-        do_refresh(service, cfg.refresh_token, region)
+        try do
+          cfg = Config.get_config(service)
+          region = cfg.region || :in
+          do_refresh(service, cfg.refresh_token, region)
+        rescue
+          e in ArgumentError -> {:error, e.message}
+        end
 
       token ->
         {:ok, token}
@@ -188,7 +192,7 @@ defmodule ZohoAPI.TokenCache do
   """
   @spec available?() :: boolean()
   def available? do
-    case Process.whereis(__MODULE__) do
+    case Process.whereis(cache_name()) do
       nil -> false
       _pid -> true
     end

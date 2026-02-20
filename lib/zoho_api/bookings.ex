@@ -57,10 +57,12 @@ defmodule ZohoAPI.Bookings do
 
   @spec get_appointment(map()) :: {:ok, map()} | {:error, any()}
   def get_appointment(params \\ %{}) do
-    with {:ok, token} <- TokenCache.get_or_refresh(:bookings) do
-      token
-      |> InputRequest.new(nil, params)
-      |> BookingsAPI.get_appointment()
+    with {:ok, token} <- TokenCache.get_or_refresh(:bookings),
+         {:ok, raw} <-
+           token
+           |> InputRequest.new(nil, params)
+           |> BookingsAPI.get_appointment() do
+      parse_booking_response(raw)
     end
   end
 

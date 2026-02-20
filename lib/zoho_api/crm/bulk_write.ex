@@ -61,12 +61,13 @@ defmodule ZohoAPI.CRM.BulkWrite do
   defp do_create_job(module_name, records, opts) do
     operation = Keyword.get(opts, :operation, "upsert")
     duplicate_check_fields = Keyword.get(opts, :duplicate_check_fields, [])
-    csv_data = records_to_csv(records)
+    all_keys = records |> Enum.flat_map(&Map.keys/1) |> Enum.uniq()
+    csv_data = records_to_csv(records, all_keys)
 
     with {:ok, token} <- TokenCache.get_or_refresh(:crm),
          input <- InputRequest.new(token, nil, %{}, csv_data),
          {:ok, upload_response} <- BulkWriteAPI.upload_file(input, module_name),
-         file_id <- get_in(upload_response, ["details", "file_id"]) do
+         {:ok, file_id} <- extract_file_id(upload_response) do
       job_body = %{
         "operation" => operation,
         "resource" => [
@@ -74,7 +75,7 @@ defmodule ZohoAPI.CRM.BulkWrite do
             "type" => "data",
             "module" => %{
               "api_name" => module_name,
-              "field_mappings" => build_field_mappings(records)
+              "field_mappings" => build_field_mappings(all_keys)
             },
             "file_id" => file_id,
             "find_by" => duplicate_check_fields
@@ -116,25 +117,18 @@ defmodule ZohoAPI.CRM.BulkWrite do
     end
   end
 
-  defp build_field_mappings([_first | _] = records) do
-    all_keys =
-      records
-      |> Enum.flat_map(&Map.keys/1)
-      |> Enum.uniq()
+  defp extract_file_id(%{"details" => %{"file_id" => id}}) when not is_nil(id), do: {:ok, id}
 
-    Enum.map(all_keys, fn key ->
-      %{"api_name" => key, "index" => Enum.find_index(all_keys, &(&1 == key))}
-    end)
+  defp extract_file_id(response),
+    do: {:error, "Upload response missing file_id: #{inspect(response)}"}
+
+  defp build_field_mappings(all_keys) do
+    all_keys
+    |> Enum.with_index()
+    |> Enum.map(fn {key, index} -> %{"api_name" => key, "index" => index} end)
   end
 
-  defp build_field_mappings(_), do: []
-
-  defp records_to_csv([_first | _] = records) do
-    all_keys =
-      records
-      |> Enum.flat_map(&Map.keys/1)
-      |> Enum.uniq()
-
+  defp records_to_csv([_first | _] = records, all_keys) do
     header = Enum.join(all_keys, ",")
 
     rows =
@@ -147,7 +141,7 @@ defmodule ZohoAPI.CRM.BulkWrite do
     Enum.join([header | rows], "\n")
   end
 
-  defp records_to_csv(_), do: ""
+  defp records_to_csv(_, _all_keys), do: ""
 
   defp csv_escape(nil), do: ""
 

@@ -96,7 +96,22 @@ defmodule ZohoAPI.CRM do
     end
   end
 
+  @max_composite_requests 5
+
   @spec composite_request(map()) :: {:ok, map()} | {:error, any()}
+  def composite_request(%{"requests" => requests} = body)
+      when is_list(requests) and length(requests) <= @max_composite_requests do
+    with {:ok, token} <- TokenCache.get_or_refresh(:crm) do
+      token
+      |> InputRequest.new(nil, %{}, body)
+      |> Composite.execute()
+    end
+  end
+
+  def composite_request(%{"requests" => requests}) when is_list(requests) do
+    {:error, "Composite API supports at most #{@max_composite_requests} requests per call"}
+  end
+
   def composite_request(body) do
     with {:ok, token} <- TokenCache.get_or_refresh(:crm) do
       token

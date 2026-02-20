@@ -89,7 +89,6 @@ defmodule ZohoAPI.Config do
           | :recruit
           | :bookings
           | :projects
-          | :project
           | :meeting
           | :drive
           | :cliq
@@ -109,7 +108,6 @@ defmodule ZohoAPI.Config do
     :recruit,
     :bookings,
     :projects,
-    :project,
     :meeting,
     :drive,
     :cliq

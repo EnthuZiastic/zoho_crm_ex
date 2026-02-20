@@ -475,7 +475,8 @@ defmodule ZohoAPI.Request do
 
   # Zoho Cliq API
   def construct_url(%__MODULE__{api_type: "cliq"} = r) do
-    base = "https://cliq.zoho.in/api/#{r.version}/#{r.path}"
+    base_url = get_region_url(:cliq, r.region)
+    base = "#{base_url}/api/#{r.version}/#{r.path}"
     append_params(base, r.params)
   end
 
