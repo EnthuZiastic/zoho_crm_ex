@@ -1,0 +1,359 @@
+defmodule ZohoAPI.Modules.Bulk.WriteTest do
+  use ExUnit.Case, async: true
+
+  import Mox
+
+  alias ZohoAPI.InputRequest
+  alias ZohoAPI.Modules.Bulk.Write
+
+  setup :verify_on_exit!
+
+  describe "upload_file/3 for CRM" do
+    test "uploads a file for CRM bulk write" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, headers, _opts ->
+        assert url =~ "crm/bulk/v8/write/file"
+        assert url =~ "module=Leads"
+        assert {"Content-Type", "text/csv"} in headers
+        assert body == "Last_Name,Email\nSmith,smith@example.com"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{
+               "status" => "success",
+               "details" => %{"file_id" => "file_123"}
+             })
+         }}
+      end)
+
+      csv_content = "Last_Name,Email\nSmith,smith@example.com"
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(csv_content)
+
+      {:ok, result} = Write.upload_file(input, "Leads", service: :crm)
+
+      assert result["status"] == "success"
+      assert result["details"]["file_id"] == "file_123"
+    end
+
+    test "requires service option" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body("csv,data")
+
+      assert_raise KeyError, ~r/:service/, fn ->
+        Write.upload_file(input, "Leads", [])
+      end
+    end
+  end
+
+  describe "upload_file/3 for Recruit" do
+    test "uploads a file for Recruit bulk write" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, _body, headers, _opts ->
+        assert url =~ "recruit.zoho.in/recruit/bulk/v2/write/file"
+        assert url =~ "module=Candidates"
+        assert {"Content-Type", "text/csv"} in headers
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{
+               "status" => "success",
+               "details" => %{"file_id" => "recruit_file_456"}
+             })
+         }}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body("Last_Name,Email\nDoe,doe@example.com")
+
+      {:ok, result} = Write.upload_file(input, "Candidates", service: :recruit)
+
+      assert result["details"]["file_id"] == "recruit_file_456"
+    end
+  end
+
+  describe "upload_file/3 validation" do
+    test "rejects files larger than 25MB" do
+      # Create a body larger than 25MB
+      large_body = String.duplicate("x", 26 * 1024 * 1024)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(large_body)
+
+      {:error, error} = Write.upload_file(input, "Leads", service: :crm)
+
+      assert error.code == "FILE_SIZE_EXCEEDED"
+      assert error.message =~ "exceeds maximum"
+    end
+
+    test "rejects non-binary body" do
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{"not" => "binary"})
+
+      {:error, error} = Write.upload_file(input, "Leads", service: :crm)
+
+      assert error.code == "INVALID_FILE_BODY"
+    end
+  end
+
+  describe "create_job/2 for CRM" do
+    test "creates a bulk write job for CRM" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, body, _headers, _opts ->
+        assert url =~ "crm/bulk/v8/write"
+        refute url =~ "write/file"
+
+        body_map = Jason.decode!(body)
+        assert body_map["operation"] == "insert"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 201,
+           body:
+             Jason.encode!(%{
+               "status" => "ADDED",
+               "details" => %{"id" => "write_job_123"}
+             })
+         }}
+      end)
+
+      job_config = %{
+        "operation" => "insert",
+        "resource" => [
+          %{
+            "type" => "data",
+            "module" => %{"api_name" => "Leads"},
+            "file_id" => "file_123",
+            "field_mappings" => [
+              %{"api_name" => "Last_Name", "index" => 0}
+            ]
+          }
+        ]
+      }
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(job_config)
+
+      {:ok, result} = Write.create_job(input, service: :crm)
+
+      assert result["status"] == "ADDED"
+      assert result["details"]["id"] == "write_job_123"
+    end
+  end
+
+  describe "create_job/2 for Recruit" do
+    test "creates a bulk write job for Recruit" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, _body, _headers, _opts ->
+        assert url =~ "recruit.zoho.in/recruit/bulk/v2/write"
+        refute url =~ "write/file"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 201,
+           body:
+             Jason.encode!(%{
+               "status" => "ADDED",
+               "details" => %{"id" => "recruit_write_job_456"}
+             })
+         }}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{"operation" => "insert", "resource" => []})
+
+      {:ok, result} = Write.create_job(input, service: :recruit)
+
+      assert result["details"]["id"] == "recruit_write_job_456"
+    end
+  end
+
+  describe "get_job_status/3" do
+    test "gets bulk write job status for CRM" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
+        assert url =~ "crm/bulk/v8/write/job_123"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => "COMPLETED"})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+      {:ok, result} = Write.get_job_status(input, "job_123", service: :crm)
+
+      assert result["status"] == "COMPLETED"
+    end
+
+    test "gets bulk write job status for Recruit" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
+        assert url =~ "recruit.zoho.in/recruit/bulk/v2/write/recruit_job_456"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => "IN_PROGRESS"})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+      {:ok, result} = Write.get_job_status(input, "recruit_job_456", service: :recruit)
+
+      assert result["status"] == "IN_PROGRESS"
+    end
+
+    test "validates job_id" do
+      input = InputRequest.new("test_token")
+      {:error, error} = Write.get_job_status(input, "invalid/id", service: :crm)
+
+      assert error =~ "path separators not allowed"
+    end
+  end
+
+  describe "wait_for_completion/3" do
+    test "returns immediately when job is completed" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => "COMPLETED", "result" => %{}})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+
+      {:ok, result} =
+        Write.wait_for_completion(input, "job_123", service: :crm, interval: 10, max_attempts: 3)
+
+      assert result["status"] == "COMPLETED"
+    end
+
+    test "returns error when job fails" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => "FAILED"})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+
+      {:error, :job_failed} =
+        Write.wait_for_completion(input, "job_123", service: :crm, interval: 10, max_attempts: 3)
+    end
+
+    test "handles ADDED status as in-progress" do
+      # First call returns ADDED, second returns COMPLETED
+      {:ok, agent} = Agent.start_link(fn -> 0 end)
+
+      expect(ZohoAPI.HTTPClientMock, :request, 2, fn :get, _url, _body, _headers, _opts ->
+        call_count = Agent.get_and_update(agent, fn count -> {count, count + 1} end)
+
+        status = if call_count == 0, do: "ADDED", else: "COMPLETED"
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => status})
+         }}
+      end)
+
+      input = InputRequest.new("test_token")
+
+      {:ok, result} =
+        Write.wait_for_completion(input, "job_123", service: :crm, interval: 10, max_attempts: 5)
+
+      assert result["status"] == "COMPLETED"
+      Agent.stop(agent)
+    end
+
+    test "requires service option" do
+      input = InputRequest.new("test_token")
+
+      assert_raise KeyError, ~r/:service/, fn ->
+        Write.wait_for_completion(input, "job_123", [])
+      end
+    end
+  end
+
+  describe "edge cases" do
+    test "rejects file at exactly 25 MB boundary" do
+      # Create a body exactly at the 25MB limit (should be rejected)
+      boundary_size = 25 * 1024 * 1024 + 1
+      large_body = String.duplicate("x", boundary_size)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(large_body)
+
+      {:error, error} = Write.upload_file(input, "Leads", service: :crm)
+
+      assert error.code == "FILE_SIZE_EXCEEDED"
+    end
+
+    test "accepts file just under 25 MB limit" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"status" => "success", "details" => %{"file_id" => "ok"}})
+         }}
+      end)
+
+      # Just under 25MB should succeed
+      under_limit_size = 25 * 1024 * 1024 - 1
+      body = String.duplicate("x", under_limit_size)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(body)
+
+      {:ok, result} = Write.upload_file(input, "Leads", service: :crm)
+
+      assert result["status"] == "success"
+    end
+
+    test "accepts empty file upload" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, body, _headers, _opts ->
+        assert body == ""
+
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{"status" => "success", "details" => %{"file_id" => "empty_file"}})
+         }}
+      end)
+
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body("")
+
+      {:ok, result} = Write.upload_file(input, "Leads", service: :crm)
+
+      assert result["details"]["file_id"] == "empty_file"
+    end
+
+    test "handles invalid service option gracefully" do
+      # Invalid service should raise FunctionClauseError since api_config_for_service
+      # only matches :crm and :recruit
+      input =
+        InputRequest.new("test_token")
+        |> InputRequest.with_body(%{"operation" => "insert", "resource" => []})
+
+      assert_raise FunctionClauseError, fn ->
+        Write.create_job(input, service: :invalid)
+      end
+    end
+  end
+end

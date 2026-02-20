@@ -1,0 +1,216 @@
+#!/usr/bin/env elixir
+# Test script for Zoho CRM API
+#
+# Usage:
+#   mix run scripts/test_crm.exs
+#
+# Configuration:
+#   Copy scripts/config.example.exs to scripts/config.exs and fill in your values
+
+# Load configuration
+config_path = Path.join(__DIR__, "config.exs")
+
+unless File.exists?(config_path) do
+  IO.puts("""
+  Configuration file not found!
+
+  Please copy the example config and fill in your values:
+    cp scripts/config.example.exs scripts/config.exs
+
+  Then edit scripts/config.exs with your real API keys.
+  """)
+
+  System.halt(1)
+end
+
+config = Code.eval_file(config_path) |> elem(0)
+
+# Configure the application with credentials from config.exs
+# Supports per-service credentials (config[:crm][:client_id]) or shared (config[:client_id])
+Application.put_env(:zoho_api, :crm,
+  client_id: config[:crm][:client_id] || config[:client_id],
+  client_secret: config[:crm][:client_secret] || config[:client_secret]
+)
+
+refresh_token = config[:crm][:refresh_token] || config[:refresh_token]
+
+alias ZohoAPI.InputRequest
+alias ZohoAPI.Modules.CRM.Records
+alias ZohoAPI.Modules.Token
+alias ZohoAPI.Client
+
+IO.puts("=== Zoho CRM API Test Script ===\n")
+
+# Helper to print results
+defmodule TestHelper do
+  def print_result(name, result) do
+    case result do
+      {:ok, data} ->
+        IO.puts("[PASS] #{name}")
+        IO.puts("  Response: #{inspect(data, limit: :infinity, pretty: true, width: 120)}\n")
+        {:ok, data}
+
+      {:error, reason} ->
+        IO.puts("[FAIL] #{name}")
+        IO.puts("  Error: #{inspect(reason, limit: :infinity, pretty: true)}\n")
+        {:error, reason}
+    end
+  end
+
+  def section(title) do
+    IO.puts("\n--- #{title} ---\n")
+  end
+end
+
+# Get or refresh access token
+TestHelper.section("Token Management")
+
+access_token =
+  if config[:access_token] do
+    IO.puts("Using provided access token, validating...")
+
+    case Token.validate_token(config[:access_token], service: :crm, region: config[:region]) do
+      :ok ->
+        IO.puts("[PASS] Token validated - has CRM scopes")
+        config[:access_token]
+
+      {:error, {:missing_scopes, :crm, message}} ->
+        IO.puts("[FAIL] Token validation failed:\n#{message}")
+        System.halt(1)
+
+      {:error, reason} ->
+        IO.puts("[FAIL] Token validation failed: #{inspect(reason)}")
+        System.halt(1)
+    end
+  else
+    IO.puts("Refreshing and validating access token...")
+
+    case Token.refresh_and_validate(refresh_token, service: :crm, region: config[:region]) do
+      {:ok, %{"access_token" => token}} ->
+        IO.puts("[PASS] Token refreshed and validated - has CRM scopes")
+        token
+
+      {:error, {:invalid_refresh_token, :crm, bad_token, message}} ->
+        IO.puts("""
+        [FAIL] Invalid refresh token - lacks CRM scopes
+
+        Problematic refresh token:
+          #{bad_token}
+
+        This refresh token maybe created without necessary CRM API scopes.
+        It cannot be fixed automatically - you must generate a new one.
+
+        #{message}
+        """)
+        System.halt(1)
+
+      {:error, {:invalid_client, message}} ->
+        IO.puts("[FAIL] Invalid OAuth client credentials: #{message}")
+        System.halt(1)
+
+      {:error, {:missing_scopes, :crm, message}} ->
+        IO.puts("[FAIL] Token lacks required CRM scopes:\n#{message}")
+        System.halt(1)
+
+      {:error, reason} ->
+        IO.puts("[FAIL] Token refresh failed: #{inspect(reason)}")
+        System.halt(1)
+    end
+  end
+
+# Create base input request
+base_input =
+  InputRequest.new(access_token)
+  |> InputRequest.with_region(config[:region])
+  |> InputRequest.with_module_api_name(config[:crm][:module])
+
+# Test 1: Get Records (List)
+TestHelper.section("Get Records (List)")
+
+# Note: Zoho CRM v8 requires 'fields' parameter
+input = base_input |> InputRequest.with_query_params(%{"per_page" => 5, "fields" => "Last_Name,Email,Company"})
+TestHelper.print_result("Get #{config[:crm][:module]} (5 records)", Records.get_records(input))
+
+# Test 2: Search Records
+TestHelper.section("Search Records")
+
+search_input =
+  base_input
+  |> InputRequest.with_query_params(%{"criteria" => "(Created_Time:greater_than:2026-01-13T00:00:00+00:00)"})
+
+case Records.search_records(search_input) do
+  {:ok, %{"data" => [first_record | _], "info" => info}} ->
+    IO.puts("[PASS] Search #{config[:crm][:module]} by Created_Time")
+    IO.puts("  Count: #{info["count"]} records")
+    IO.puts("  More records: #{info["more_records"]}")
+    IO.puts("  Attributes (#{map_size(first_record)}): #{first_record |> Map.keys() |> Enum.sort() |> Enum.join(", ")}")
+    # IO.puts("  Sample record: #{inspect(first_record, limit: :infinity, pretty: true, width: 120)}\n")
+
+  {:ok, %{"data" => []}} ->
+    IO.puts("[PASS] Search #{config[:crm][:module]} - no records found\n")
+
+  {:error, reason} ->
+    IO.puts("[FAIL] Search #{config[:crm][:module]}")
+    IO.puts("  Error: #{inspect(reason)}\n")
+end
+
+# Test 3: Get Specific Record (if record_id provided)
+if config[:crm][:record_id] do
+  TestHelper.section("Get Specific Record")
+
+  TestHelper.print_result(
+    "Get record #{config[:crm][:record_id]}",
+    Records.get_record(base_input, to_string(config[:crm][:record_id]))
+  )
+end
+
+# Test 4: Create and Delete Record
+TestHelper.section("Create Record")
+
+create_input =
+  base_input
+  |> InputRequest.with_body([
+    %{
+      "Last_Name" => "Test User #{:rand.uniform(10000)}",
+      "Company" => "Test Company",
+      "Email" => "test#{:rand.uniform(10000)}@example.com"
+    }
+  ])
+
+case TestHelper.print_result("Create test #{config[:crm][:module]}", Records.insert_records(create_input)) do
+  {:ok, %{"data" => [%{"details" => %{"id" => record_id}} = first_result | _]}} ->
+    IO.puts("  ✓ Created record ID: #{record_id}")
+    IO.puts("  ✓ Full details: #{inspect(first_result, pretty: true)}\n")
+
+    TestHelper.section("Delete Created Record")
+
+    delete_input =
+      base_input
+      |> InputRequest.with_query_params(%{"ids" => record_id})
+
+    TestHelper.print_result("Delete record #{record_id}", Records.delete_records(delete_input))
+
+  _ ->
+    IO.puts("Skipping delete test - no record created")
+end
+
+# Test 5: Get Records with Client (includes retry logic)
+TestHelper.section("Client with Retry Logic")
+
+client_input =
+  base_input
+  |> InputRequest.with_query_params(%{"per_page" => 3})
+  |> InputRequest.with_refresh_token(refresh_token)
+  |> InputRequest.with_retry_opts(max_retries: 2, base_delay_ms: 500)
+
+request =
+  ZohoAPI.Request.new("crm")
+  |> ZohoAPI.Request.set_access_token(access_token)
+  |> ZohoAPI.Request.with_region(config[:region])
+  |> ZohoAPI.Request.with_method(:get)
+  |> ZohoAPI.Request.with_path(config[:crm][:module])
+  |> ZohoAPI.Request.with_params(%{"per_page" => 3, "fields" => "Last_Name,Email,Company"})
+
+TestHelper.print_result("Client.send with retry", Client.send(request, client_input))
+
+IO.puts("\n=== CRM Test Complete ===")

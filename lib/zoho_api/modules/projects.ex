@@ -1,10 +1,10 @@
-defmodule ZohoCrm.Modules.Projects do
+defmodule ZohoAPI.Modules.Projects do
   @moduledoc """
   This module handle Zoho Project API
   """
 
-  alias ZohoCrm.Request
-  alias ZohoCrm.InputRequest
+  alias ZohoAPI.InputRequest
+  alias ZohoAPI.Request
 
   @api_type "portal"
   @project_base "https://projectsapi.zoho.in/restapi"
@@ -14,7 +14,7 @@ defmodule ZohoCrm.Modules.Projects do
   @type task_id() :: String.t()
   @type comment_id() :: String.t()
 
-  @spec list_tasks(ZohoCrm.InputRequest.t(), portal_id(), project_id()) ::
+  @spec list_tasks(ZohoAPI.InputRequest.t(), portal_id(), project_id()) ::
           {:error, any} | {:ok, any}
   def list_tasks(%InputRequest{} = r, portal_id, project_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/"
@@ -25,7 +25,7 @@ defmodule ZohoCrm.Modules.Projects do
     |> Request.send()
   end
 
-  @spec get_task(ZohoCrm.InputRequest.t(), portal_id(), project_id(), task_id()) ::
+  @spec get_task(ZohoAPI.InputRequest.t(), portal_id(), project_id(), task_id()) ::
           {:error, any} | {:ok, any}
   def get_task(%InputRequest{} = r, portal_id, project_id, task_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/"
@@ -36,7 +36,7 @@ defmodule ZohoCrm.Modules.Projects do
     |> Request.send()
   end
 
-  @spec create_task(ZohoCrm.InputRequest.t(), portal_id(), project_id()) ::
+  @spec create_task(ZohoAPI.InputRequest.t(), portal_id(), project_id()) ::
           {:error, any} | {:ok, any}
   def create_task(%InputRequest{} = r, portal_id, project_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/"
@@ -48,7 +48,7 @@ defmodule ZohoCrm.Modules.Projects do
     |> Request.send()
   end
 
-  @spec update_task(ZohoCrm.InputRequest.t(), portal_id(), project_id(), task_id()) ::
+  @spec update_task(ZohoAPI.InputRequest.t(), portal_id(), project_id(), task_id()) ::
           {:error, any} | {:ok, any}
   def update_task(%InputRequest{} = r, portal_id, project_id, task_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/"
@@ -60,7 +60,7 @@ defmodule ZohoCrm.Modules.Projects do
     |> Request.send()
   end
 
-  @spec list_comments(ZohoCrm.InputRequest.t(), portal_id(), project_id(), task_id()) ::
+  @spec list_comments(ZohoAPI.InputRequest.t(), portal_id(), project_id(), task_id()) ::
           {:error, any} | {:ok, any}
   def list_comments(%InputRequest{} = r, portal_id, project_id, task_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/"
@@ -72,7 +72,7 @@ defmodule ZohoCrm.Modules.Projects do
     |> Request.send()
   end
 
-  @spec add_comment(ZohoCrm.InputRequest.t(), portal_id(), project_id(), task_id()) ::
+  @spec add_comment(ZohoAPI.InputRequest.t(), portal_id(), project_id(), task_id()) ::
           {:error, any} | {:ok, any}
   def add_comment(%InputRequest{} = r, portal_id, project_id, task_id) do
     path = "/portal/#{portal_id}/projects/#{project_id}/tasks/#{task_id}/comments/"
@@ -85,7 +85,7 @@ defmodule ZohoCrm.Modules.Projects do
   end
 
   @spec update_comment(
-          ZohoCrm.InputRequest.t(),
+          ZohoAPI.InputRequest.t(),
           portal_id(),
           project_id(),
           task_id(),
@@ -103,7 +103,7 @@ defmodule ZohoCrm.Modules.Projects do
   end
 
   @spec delete_comment(
-          ZohoCrm.InputRequest.t(),
+          ZohoAPI.InputRequest.t(),
           portal_id(),
           project_id(),
           task_id(),

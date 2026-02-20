@@ -1,6 +1,6 @@
 # This file is responsible for configuring your application
-# and its dependencies with the aid of the Mix.Config module.
-use Mix.Config
+# and its dependencies with the aid of the Config module.
+import Config
 
 # This configuration is loaded before any dependency and is restricted
 # to this project. If another project depends on this project, this
@@ -10,24 +10,28 @@ use Mix.Config
 
 # You can configure for your application as:
 #
-#     config :zoho_crm, key: :value
+#     config :zoho_api, key: :value
 #
 # And access this configuration in your application as:
 #
-#     Application.get_env(:zoho_crm, :key)
+#     Application.get_env(:zoho_api, :key)
 #
 # Or configure a 3rd-party app:
 #
 #     config :logger, level: :info
 #
 
-config :zoho_crm, :zoho,
+config :zoho_api, :zoho,
   client_id: {:system, "ZOHO_CLIENT_ID"},
   client_secret: {:system, "ZOHO_CLIENT_SECRET"}
+
+# Default timeout for HTTP requests (in milliseconds)
+# Can be overridden per-request using Request.with_timeout/2
+config :zoho_api, :http_timeout, 30_000
 
 # It is also possible to import configuration files, relative to this
 # directory. For example, you can emulate configuration per environment
 # by uncommenting the line below and defining dev.exs, test.exs and such.
 # Configuration from the imported file will override the ones defined
 # here (which is why it is important to import them last).
-import_config "#{Mix.env()}.exs"
+import_config "#{config_env()}.exs"

@@ -1,10 +1,10 @@
-defmodule ZohoCrm.Modules.Bookings do
+defmodule ZohoAPI.Modules.Bookings do
   @moduledoc """
   This module handle Zoho Booking API
   """
 
-  alias ZohoCrm.Request
-  alias ZohoCrm.InputRequest
+  alias ZohoAPI.InputRequest
+  alias ZohoAPI.Request
 
   @api_type "bookings"
   @version "v1"

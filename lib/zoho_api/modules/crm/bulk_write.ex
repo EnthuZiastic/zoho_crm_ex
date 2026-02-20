@@ -1,0 +1,154 @@
+defmodule ZohoAPI.Modules.CRM.BulkWrite do
+  @moduledoc """
+  Zoho CRM Bulk Write API.
+
+  This module provides CRM-specific bulk write operations. For a generic
+  bulk write API that supports multiple services, see `ZohoAPI.Modules.Bulk.Write`.
+
+  The Bulk Write API enables you to insert, update, or upsert up to 25,000
+  records in a single operation. The process involves:
+
+  1. Upload a CSV/ZIP file containing records
+  2. Create a bulk write job with the file ID
+  3. Poll for job completion
+  4. Check results
+
+  ## Limits
+
+    - **Maximum file size:** 25 MB
+    - **Maximum records per job:** 25,000
+    - Files exceeding 25 MB will be rejected with an error
+
+  ## Supported Operations
+
+    - `insert` - Insert new records
+    - `update` - Update existing records
+    - `upsert` - Insert or update based on duplicate criteria
+
+  ## Examples
+
+      # Step 1: Upload the CSV file
+      input = InputRequest.new("access_token")
+      |> InputRequest.with_body(csv_content)
+
+      {:ok, %{"details" => %{"file_id" => file_id}}} = BulkWrite.upload_file(input, "Leads")
+
+      # Step 2: Create the bulk write job
+      job_input = InputRequest.new("access_token")
+      |> InputRequest.with_body(%{
+        "operation" => "insert",
+        "resource" => [
+          %{
+            "type" => "data",
+            "module" => %{"api_name" => "Leads"},
+            "file_id" => file_id,
+            "field_mappings" => [
+              %{"api_name" => "Last_Name", "index" => 0},
+              %{"api_name" => "Email", "index" => 1}
+            ]
+          }
+        ]
+      })
+
+      {:ok, %{"details" => %{"id" => job_id}}} = BulkWrite.create_job(job_input)
+
+      # Step 3: Check job status
+      {:ok, status} = BulkWrite.get_job_status(input, job_id)
+  """
+
+  alias ZohoAPI.InputRequest
+  alias ZohoAPI.Modules.Bulk
+
+  @doc """
+  Uploads a CSV or ZIP file for bulk write operations.
+
+  The file should be a CSV with headers matching the field mappings
+  you'll use in the job creation.
+
+  ## Parameters
+
+    - `input` - InputRequest with `body` containing the file content
+    - `module_name` - The target module API name (e.g., "Leads")
+
+  ## Memory Considerations
+
+  **Important:** The file content must be loaded into memory before calling this
+  function. File size validation occurs after the data is in memory.
+
+  For large files approaching the 25 MB limit:
+  - Check file size before reading into memory using `File.stat!/1`
+  - Consider chunking or batching if processing multiple files
+  - The validation will reject files > 25 MB with a descriptive error
+
+  ```elixir
+  # Recommended: Check size before loading
+  %{size: size} = File.stat!(file_path)
+  if size > 25 * 1024 * 1024 do
+    {:error, :file_too_large}
+  else
+    content = File.read!(file_path)
+    BulkWrite.upload_file(input |> InputRequest.with_body(content), "Leads")
+  end
+  ```
+
+  ## Returns
+
+    - `{:ok, %{"status" => "success", "details" => %{"file_id" => "..."}}}` on success
+    - `{:error, reason}` on failure
+  """
+  @spec upload_file(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
+  def upload_file(%InputRequest{} = r, module_name) do
+    Bulk.Write.upload_file(r, module_name, service: :crm)
+  end
+
+  @doc """
+  Creates a bulk write job.
+
+  ## Parameters
+
+    - `input` - InputRequest with `body` containing:
+      - `operation` - "insert", "update", or "upsert"
+      - `resource` - Array of resource configurations
+
+  ## Body Format
+
+      %{
+        "operation" => "insert",
+        "resource" => [
+          %{
+            "type" => "data",
+            "module" => %{"api_name" => "Leads"},
+            "file_id" => "file_id_from_upload",
+            "field_mappings" => [
+              %{"api_name" => "Last_Name", "index" => 0}
+            ]
+          }
+        ]
+      }
+
+  ## Returns
+
+    - `{:ok, %{"status" => "ADDED", "details" => %{"id" => "job_id"}}}` on success
+  """
+  @spec create_job(InputRequest.t()) :: {:ok, map()} | {:error, any()}
+  def create_job(%InputRequest{} = r) do
+    Bulk.Write.create_job(r, service: :crm)
+  end
+
+  @doc """
+  Gets the status of a bulk write job.
+
+  ## Parameters
+
+    - `input` - InputRequest with access token
+    - `job_id` - The bulk write job ID
+
+  ## Returns
+
+    - `{:ok, %{"status" => "COMPLETED" | "IN_PROGRESS" | "QUEUED" | ...}}`
+  """
+  @spec get_job_status(InputRequest.t(), String.t()) :: {:ok, map()} | {:error, any()}
+  def get_job_status(%InputRequest{} = r, job_id) do
+    Bulk.Write.get_job_status(r, job_id, service: :crm)
+  end
+end
