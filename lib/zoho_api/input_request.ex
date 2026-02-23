@@ -63,7 +63,7 @@ defmodule ZohoAPI.InputRequest do
   @type access_token :: String.t()
   @type module_api_name :: String.t() | nil
   @type query_params :: map()
-  @type body :: map() | list() | String.t()
+  @type body :: map() | list() | String.t() | {:form, list()}
   @type org_id :: String.t() | nil
   @type region :: :in | :com | :eu | :au | :jp | :uk | :ca | :sa
   @type token_refresh_callback :: (String.t() -> any()) | nil
