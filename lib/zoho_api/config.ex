@@ -77,18 +77,43 @@ defmodule ZohoAPI.Config do
   defstruct [
     :client_id,
     :client_secret,
-    :org_id
+    :org_id,
+    :refresh_token,
+    :region
   ]
 
-  @type service :: :crm | :desk | :workdrive | :recruit | :bookings | :projects
+  @type service ::
+          :crm
+          | :desk
+          | :workdrive
+          | :recruit
+          | :bookings
+          | :projects
+          | :meeting
+          | :drive
+          | :cliq
 
   @type t() :: %__MODULE__{
           client_id: String.t(),
           client_secret: String.t(),
-          org_id: String.t() | nil
+          org_id: String.t() | nil,
+          refresh_token: String.t() | nil,
+          region: atom() | nil
         }
 
-  @valid_services [:crm, :desk, :workdrive, :recruit, :bookings, :projects]
+  @valid_services [
+    :crm,
+    :desk,
+    :workdrive,
+    :recruit,
+    :bookings,
+    :projects,
+    :meeting,
+    :drive,
+    :cliq
+  ]
+
+  @struct_fields [:client_id, :client_secret, :org_id, :refresh_token, :region]
 
   @doc """
   Returns configuration for the specified Zoho service.
@@ -114,14 +139,20 @@ defmodule ZohoAPI.Config do
 
   def get_config(service) when service in @valid_services do
     config = get_service_config(service)
-    cfg = Enum.map(config, fn {k, v} -> {k, get_value(v)} end)
+
+    cfg =
+      config
+      |> Enum.filter(fn {k, _v} -> k in @struct_fields end)
+      |> Enum.map(fn {k, v} -> {k, get_value(v)} end)
+
     struct!(__MODULE__, cfg)
   end
 
   def get_config(_service) do
     raise ArgumentError,
       message:
-        "Invalid service. Must be one of: :crm, :desk, :workdrive, :recruit, :bookings, :projects"
+        "Invalid service. Must be one of: " <>
+          Enum.map_join(@valid_services, ", ", &inspect/1)
   end
 
   defp get_service_config(service) do
