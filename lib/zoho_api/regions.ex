@@ -101,6 +101,17 @@ defmodule ZohoAPI.Regions do
       uk: "https://cliq.zoho.uk",
       ca: "https://cliq.zohocloud.ca",
       sa: "https://cliq.zoho.sa"
+    },
+    # Zoho Meeting
+    meeting: %{
+      in: "https://meeting.zoho.in",
+      com: "https://meeting.zoho.com",
+      eu: "https://meeting.zoho.eu",
+      au: "https://meeting.zoho.com.au",
+      jp: "https://meeting.zoho.jp",
+      uk: "https://meeting.zoho.uk",
+      ca: "https://meeting.zohocloud.ca",
+      sa: "https://meeting.zoho.sa"
     }
   }
 

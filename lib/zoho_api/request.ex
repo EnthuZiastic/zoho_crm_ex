@@ -473,6 +473,13 @@ defmodule ZohoAPI.Request do
     append_params(base, r.params)
   end
 
+  # Zoho Meeting API
+  def construct_url(%__MODULE__{api_type: "meeting"} = r) do
+    base_url = get_region_url(:meeting, r.region)
+    base = "#{base_url}/api/#{r.version}/#{r.path}"
+    append_params(base, r.params)
+  end
+
   # Zoho Cliq API
   def construct_url(%__MODULE__{api_type: "cliq"} = r) do
     base_url = get_region_url(:cliq, r.region)
