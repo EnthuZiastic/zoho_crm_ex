@@ -72,7 +72,7 @@ defmodule ZohoAPI.Projects do
            |> InputRequest.new(nil, %{}, attrs)
            |> ProjectsAPI.update_task(portal_id, project_id, task_id) do
       case raw do
-        %{"tasks" => [%{"id" => id} | _]} -> {:ok, Integer.to_string(id)}
+        %{"tasks" => [%{"id" => id} | _]} -> {:ok, to_string(id)}
         other -> {:error, other}
       end
     end
