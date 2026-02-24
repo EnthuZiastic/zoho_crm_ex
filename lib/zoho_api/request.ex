@@ -17,6 +17,9 @@ defmodule ZohoAPI.Request do
     - `"bulk"` - Zoho CRM Bulk API (v8)
     - `"recruit_bulk"` - Zoho Recruit Bulk API (v2)
     - `"composite"` - Zoho CRM Composite API (v8)
+    - `"drive"` - Zoho Drive (alias for WorkDrive; same URL pattern)
+    - `"meeting"` - Zoho Meeting API (v2)
+    - `"cliq"` - Zoho Cliq API
 
   ## Examples
 
