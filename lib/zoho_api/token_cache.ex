@@ -96,6 +96,12 @@ defmodule ZohoAPI.TokenCache do
     - `{:ok, access_token}` on success
     - `{:error, reason}` on failure
 
+  ## Notes
+
+  If the service config omits a `:region` key, the region silently defaults
+  to `:in` (India). Set `region: :com` (or the appropriate atom) in your
+  service config if your Zoho account is not on the India data centre.
+
   ## Examples
 
       {:ok, token} = ZohoAPI.TokenCache.get_or_refresh(:crm)

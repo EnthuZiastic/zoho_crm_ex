@@ -379,6 +379,7 @@ defmodule ZohoAPI.Request do
   end
 
   defp encode_body(body) when is_binary(body), do: {:ok, body}
+  defp encode_body({:form, _} = form_body), do: {:ok, form_body}
   defp encode_body(nil), do: {:ok, ""}
   defp encode_body(body), do: {:ok, to_string(body)}
 
@@ -443,6 +444,13 @@ defmodule ZohoAPI.Request do
 
   # WorkDrive API
   def construct_url(%__MODULE__{api_type: "workdrive"} = r) do
+    base_url = get_region_url(:zohoapis, r.region)
+    base = "#{base_url}/workdrive/api/#{r.version}/#{r.path}"
+    append_params(base, r.params)
+  end
+
+  # Drive API (alias for WorkDrive)
+  def construct_url(%__MODULE__{api_type: "drive"} = r) do
     base_url = get_region_url(:zohoapis, r.region)
     base = "#{base_url}/workdrive/api/#{r.version}/#{r.path}"
     append_params(base, r.params)

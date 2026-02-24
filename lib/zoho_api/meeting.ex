@@ -38,6 +38,7 @@ defmodule ZohoAPI.Meeting do
   alias ZohoAPI.InputRequest
   alias ZohoAPI.Modules.Meeting, as: MeetingAPI
   alias ZohoAPI.TokenCache
+  alias ZohoAPI.Validation
 
   @type zsoid :: String.t()
   @type meeting_key :: String.t()
@@ -75,14 +76,15 @@ defmodule ZohoAPI.Meeting do
   """
   @spec create_session(zsoid(), map()) :: {:ok, map()} | {:error, any()}
   def create_session(zsoid, session_params) do
-    with {:ok, token} <- TokenCache.get_or_refresh(:meeting),
+    with :ok <- Validation.validate_id(zsoid),
+         {:ok, token} <- TokenCache.get_or_refresh(:meeting),
          {:ok, raw} <-
            token
            |> InputRequest.new(nil, %{}, session_params)
            |> MeetingAPI.create_session(zsoid) do
       case raw do
         %{"session" => session} -> {:ok, session}
-        other -> {:ok, other}
+        other -> {:error, other}
       end
     end
   end
@@ -100,7 +102,8 @@ defmodule ZohoAPI.Meeting do
   """
   @spec list_sessions(zsoid(), map()) :: {:ok, list(map())} | {:error, any()}
   def list_sessions(zsoid, params \\ %{}) do
-    with {:ok, token} <- TokenCache.get_or_refresh(:meeting),
+    with :ok <- Validation.validate_id(zsoid),
+         {:ok, token} <- TokenCache.get_or_refresh(:meeting),
          {:ok, raw} <-
            token
            |> InputRequest.new(nil, params)
@@ -114,7 +117,9 @@ defmodule ZohoAPI.Meeting do
   """
   @spec delete_session(zsoid(), meeting_key()) :: :ok | {:error, any()}
   def delete_session(zsoid, meeting_key) do
-    with {:ok, token} <- TokenCache.get_or_refresh(:meeting),
+    with :ok <- Validation.validate_id(zsoid),
+         :ok <- Validation.validate_id(meeting_key),
+         {:ok, token} <- TokenCache.get_or_refresh(:meeting),
          {:ok, _raw} <-
            token
            |> InputRequest.new(nil)
@@ -136,7 +141,9 @@ defmodule ZohoAPI.Meeting do
   @spec get_participant_report(zsoid(), meeting_key(), map()) ::
           {:ok, list(map())} | {:error, any()}
   def get_participant_report(zsoid, meeting_key, params \\ %{}) do
-    with {:ok, token} <- TokenCache.get_or_refresh(:meeting),
+    with :ok <- Validation.validate_id(zsoid),
+         :ok <- Validation.validate_id(meeting_key),
+         {:ok, token} <- TokenCache.get_or_refresh(:meeting),
          {:ok, raw} <-
            token
            |> InputRequest.new(nil, params)
@@ -153,7 +160,9 @@ defmodule ZohoAPI.Meeting do
   """
   @spec get_recordings(zsoid(), meeting_key()) :: {:ok, list(map())} | {:error, any()}
   def get_recordings(zsoid, meeting_key) do
-    with {:ok, token} <- TokenCache.get_or_refresh(:meeting),
+    with :ok <- Validation.validate_id(zsoid),
+         :ok <- Validation.validate_id(meeting_key),
+         {:ok, token} <- TokenCache.get_or_refresh(:meeting),
          {:ok, raw} <-
            token
            |> InputRequest.new(nil)
