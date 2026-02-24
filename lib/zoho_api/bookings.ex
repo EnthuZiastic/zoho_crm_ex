@@ -27,7 +27,7 @@ defmodule ZohoAPI.Bookings do
     with {:ok, token} <- TokenCache.get_or_refresh(:bookings),
          {:ok, raw} <-
            token
-           |> InputRequest.new(nil, %{}, {:form, Enum.map(attrs, & &1)})
+           |> InputRequest.new(nil, %{}, {:form, Map.to_list(attrs)})
            |> BookingsAPI.book_appointment() do
       parse_booking_response(raw)
     end
@@ -38,7 +38,7 @@ defmodule ZohoAPI.Bookings do
     with {:ok, token} <- TokenCache.get_or_refresh(:bookings),
          {:ok, raw} <-
            token
-           |> InputRequest.new(nil, %{}, {:form, Enum.map(attrs, & &1)})
+           |> InputRequest.new(nil, %{}, {:form, Map.to_list(attrs)})
            |> BookingsAPI.reschedule_appointment() do
       parse_booking_response(raw)
     end
@@ -49,7 +49,7 @@ defmodule ZohoAPI.Bookings do
     with {:ok, token} <- TokenCache.get_or_refresh(:bookings),
          {:ok, raw} <-
            token
-           |> InputRequest.new(nil, %{}, {:form, Enum.map(attrs, & &1)})
+           |> InputRequest.new(nil, %{}, {:form, Map.to_list(attrs)})
            |> BookingsAPI.update_appointment() do
       parse_booking_response(raw)
     end

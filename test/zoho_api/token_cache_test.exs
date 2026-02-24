@@ -93,4 +93,27 @@ defmodule ZohoAPI.TokenCacheTest do
       assert true
     end
   end
+
+  describe "get_or_refresh/1" do
+    test "returns {:ok, token} when token is already cached", %{name: name} do
+      prev_config = Application.get_env(:zoho_api, :token_cache, [])
+      Application.put_env(:zoho_api, :token_cache, name: name)
+      on_exit(fn -> Application.put_env(:zoho_api, :token_cache, prev_config) end)
+
+      GenServer.cast(name, {:put, :crm, "cached_token"})
+      Process.sleep(10)
+
+      assert {:ok, "cached_token"} = TokenCache.get_or_refresh(:crm)
+    end
+
+    test "returns {:error, reason} for an invalid service atom", %{name: name} do
+      prev_config = Application.get_env(:zoho_api, :token_cache, [])
+      Application.put_env(:zoho_api, :token_cache, name: name)
+      on_exit(fn -> Application.put_env(:zoho_api, :token_cache, prev_config) end)
+
+      assert {:error, reason} = TokenCache.get_or_refresh(:not_a_valid_service)
+      assert is_binary(reason)
+      assert reason =~ "Invalid service"
+    end
+  end
 end
