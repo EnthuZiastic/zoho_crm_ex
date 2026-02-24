@@ -101,7 +101,7 @@ defmodule ZohoAPI.TokenCacheTest do
       on_exit(fn -> Application.put_env(:zoho_api, :token_cache, prev_config) end)
 
       GenServer.cast(name, {:put, :crm, "cached_token"})
-      Process.sleep(10)
+      assert GenServer.call(name, {:get, :crm}) == "cached_token"
 
       assert {:ok, "cached_token"} = TokenCache.get_or_refresh(:crm)
     end

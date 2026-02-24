@@ -21,7 +21,7 @@ defmodule ZohoAPI.CRM.BulkWriteTest do
     end)
 
     TokenCache.put_token(:crm, "test_crm_token")
-    Process.sleep(10)
+    assert TokenCache.get_token(:crm) == "test_crm_token"
 
     :ok
   end
@@ -32,7 +32,7 @@ defmodule ZohoAPI.CRM.BulkWriteTest do
     end
 
     test "returns error when records exceed 25,000 limit" do
-      records = for i <- 1..25_001, do: %{"Last_Name" => "Person #{i}"}
+      records = List.duplicate(%{"Last_Name" => "Smith"}, 25_001)
       assert {:error, _} = BulkWrite.create_job("Leads", records)
     end
 
