@@ -21,7 +21,7 @@ defmodule ZohoAPI.BookingsTest do
     end)
 
     TokenCache.put_token(:bookings, "test_bookings_token")
-    Process.sleep(10)
+    assert TokenCache.get_token(:bookings) == "test_bookings_token"
 
     :ok
   end
@@ -74,6 +74,40 @@ defmodule ZohoAPI.BookingsTest do
       end)
 
       assert {:error, _} = Bookings.book_appointment(%{service_id: "svc_1"})
+    end
+  end
+
+  describe "reschedule_appointment/1" do
+    test "returns {:error, resp} on failure status" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body:
+             Jason.encode!(%{
+               "response" => %{
+                 "returnvalue" => %{"status" => "failure", "message" => "Cannot reschedule"},
+                 "status" => "failure"
+               }
+             })
+         }}
+      end)
+
+      assert {:error, _} = Bookings.reschedule_appointment(%{booking_id: "appt_1"})
+    end
+  end
+
+  describe "update_appointment/1" do
+    test "returns {:error, other} on unexpected response shape" do
+      expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
+        {:ok,
+         %HTTPoison.Response{
+           status_code: 200,
+           body: Jason.encode!(%{"error" => "Update failed"})
+         }}
+      end)
+
+      assert {:error, _} = Bookings.update_appointment(%{booking_id: "appt_1", action: "cancel"})
     end
   end
 

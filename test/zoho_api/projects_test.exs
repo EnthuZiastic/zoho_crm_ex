@@ -21,7 +21,7 @@ defmodule ZohoAPI.ProjectsTest do
     end)
 
     TokenCache.put_token(:projects, "test_projects_token")
-    Process.sleep(10)
+    assert TokenCache.get_token(:projects) == "test_projects_token"
 
     :ok
   end
