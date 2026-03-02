@@ -131,7 +131,7 @@ defmodule ZohoAPI.RequestTest do
     test "constructs Projects/Portal API URL" do
       url =
         Request.new("portal")
-        |> Request.with_path("/restapi/portal/123/projects")
+        |> Request.with_path("/portal/123/projects")
         |> Request.construct_url()
 
       assert url == "https://projectsapi.zoho.in/restapi/portal/123/projects"
