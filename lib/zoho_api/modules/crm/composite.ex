@@ -55,7 +55,7 @@ defmodule ZohoAPI.Modules.CRM.Composite do
 
   Placeholders use JSONPath-like syntax to reference data from earlier responses:
 
-      @{reference_id:$.json_path}
+      @{sub_request_id:$.json_path}
 
   Where:
     - `sub_request_id` - The `sub_request_id` of the earlier request (e.g. `"1"`, `"2"`)
