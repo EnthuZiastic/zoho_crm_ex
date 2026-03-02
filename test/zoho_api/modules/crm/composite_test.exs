@@ -36,13 +36,13 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
           "__composite_requests" => [
             %{
               "method" => "GET",
-              "reference_id" => "get_leads",
-              "url" => "/crm/v8/Leads"
+              "sub_request_id" => "get_leads",
+              "uri" => "/crm/v8/Leads"
             },
             %{
               "method" => "POST",
-              "reference_id" => "create_contact",
-              "url" => "/crm/v8/Contacts",
+              "sub_request_id" => "create_contact",
+              "uri" => "/crm/v8/Contacts",
               "body" => %{"data" => [%{"Last_Name" => "Test"}]}
             }
           ]
@@ -87,14 +87,14 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
           "__composite_requests" => [
             %{
               "method" => "GET",
-              "reference_id" => "1",
-              "url" => "/crm/v8/Contacts/search",
+              "sub_request_id" => "1",
+              "uri" => "/crm/v8/Contacts/search",
               "params" => %{"criteria" => "(Email:equals:test@example.com)"}
             },
             %{
               "method" => "PUT",
-              "reference_id" => "2",
-              "url" => "/crm/v8/Contacts/@{1:$.data[0].id}",
+              "sub_request_id" => "2",
+              "uri" => "/crm/v8/Contacts/@{1:$.data[0].id}",
               "body" => %{"data" => [%{"Phone" => "555-1234"}]}
             }
           ]
@@ -114,7 +114,7 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
     test "returns error when more than 5 requests are provided" do
       requests =
         for i <- 1..6 do
-          %{"method" => "GET", "reference_id" => "ref_#{i}", "url" => "/crm/v8/Leads"}
+          %{"method" => "GET", "sub_request_id" => "ref_#{i}", "uri" => "/crm/v8/Leads"}
         end
 
       input =
@@ -149,7 +149,7 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(%{
           "__composite_requests" => [
-            %{"reference_id" => "ref_1", "url" => "/crm/v8/Leads"}
+            %{"sub_request_id" => "ref_1", "uri" => "/crm/v8/Leads"}
           ]
         })
 
@@ -157,30 +157,30 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
       assert message =~ "Request 1: missing required field 'method'"
     end
 
-    test "returns error when request is missing 'reference_id' field" do
+    test "returns error when request is missing 'sub_request_id' field" do
       input =
         InputRequest.new("test_token")
         |> InputRequest.with_body(%{
           "__composite_requests" => [
-            %{"method" => "GET", "url" => "/crm/v8/Leads"}
+            %{"method" => "GET", "uri" => "/crm/v8/Leads"}
           ]
         })
 
       assert {:error, message} = Composite.execute(input)
-      assert message =~ "Request 1: missing required field 'reference_id'"
+      assert message =~ "Request 1: missing required field 'sub_request_id'"
     end
 
-    test "returns error when request is missing 'url' field" do
+    test "returns error when request is missing 'uri' field" do
       input =
         InputRequest.new("test_token")
         |> InputRequest.with_body(%{
           "__composite_requests" => [
-            %{"method" => "GET", "reference_id" => "ref_1"}
+            %{"method" => "GET", "sub_request_id" => "ref_1"}
           ]
         })
 
       assert {:error, message} = Composite.execute(input)
-      assert message =~ "Request 1: missing required field 'url'"
+      assert message =~ "Request 1: missing required field 'uri'"
     end
 
     test "returns error for invalid HTTP method" do
@@ -188,7 +188,7 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(%{
           "__composite_requests" => [
-            %{"method" => "PATCH", "reference_id" => "ref_1", "url" => "/crm/v8/Leads"}
+            %{"method" => "PATCH", "sub_request_id" => "ref_1", "uri" => "/crm/v8/Leads"}
           ]
         })
 
@@ -197,44 +197,44 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
       assert message =~ "Must be one of: GET, POST, PUT, DELETE"
     end
 
-    test "returns error for duplicate reference_ids" do
+    test "returns error for duplicate sub_request_ids" do
       input =
         InputRequest.new("test_token")
         |> InputRequest.with_body(%{
           "__composite_requests" => [
-            %{"method" => "GET", "reference_id" => "same_ref", "url" => "/crm/v8/Leads"},
-            %{"method" => "GET", "reference_id" => "same_ref", "url" => "/crm/v8/Contacts"}
+            %{"method" => "GET", "sub_request_id" => "same_ref", "uri" => "/crm/v8/Leads"},
+            %{"method" => "GET", "sub_request_id" => "same_ref", "uri" => "/crm/v8/Contacts"}
           ]
         })
 
       assert {:error, message} = Composite.execute(input)
-      assert message =~ "Duplicate reference_id found"
+      assert message =~ "Duplicate sub_request_id found"
     end
 
-    test "returns error for empty reference_id" do
+    test "returns error for empty sub_request_id" do
       input =
         InputRequest.new("test_token")
         |> InputRequest.with_body(%{
           "__composite_requests" => [
-            %{"method" => "GET", "reference_id" => "", "url" => "/crm/v8/Leads"}
+            %{"method" => "GET", "sub_request_id" => "", "uri" => "/crm/v8/Leads"}
           ]
         })
 
       assert {:error, message} = Composite.execute(input)
-      assert message =~ "reference_id must be a non-empty string"
+      assert message =~ "sub_request_id must be a non-empty string"
     end
 
-    test "returns error for empty url" do
+    test "returns error for empty uri" do
       input =
         InputRequest.new("test_token")
         |> InputRequest.with_body(%{
           "__composite_requests" => [
-            %{"method" => "GET", "reference_id" => "ref_1", "url" => ""}
+            %{"method" => "GET", "sub_request_id" => "ref_1", "uri" => ""}
           ]
         })
 
       assert {:error, message} = Composite.execute(input)
-      assert message =~ "url must be a non-empty string"
+      assert message =~ "uri must be a non-empty string"
     end
 
     test "returns error when request is not a map" do
@@ -261,7 +261,7 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(%{
           "__composite_requests" => [
-            %{"method" => "get", "reference_id" => "ref_1", "url" => "/crm/v8/Leads"}
+            %{"method" => "get", "sub_request_id" => "ref_1", "uri" => "/crm/v8/Leads"}
           ]
         })
 
@@ -274,7 +274,7 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
         |> InputRequest.with_body(%{
           "parallel_execution" => "false",
           "__composite_requests" => [
-            %{"method" => "GET", "reference_id" => "ref_1", "url" => "/crm/v8/Leads"}
+            %{"method" => "GET", "sub_request_id" => "ref_1", "uri" => "/crm/v8/Leads"}
           ]
         })
 
@@ -287,11 +287,15 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
         InputRequest.new("test_token")
         |> InputRequest.with_body(%{
           "__composite_requests" => [
-            %{"method" => "GET", "reference_id" => "search", "url" => "/crm/v8/Contacts/search"},
+            %{
+              "method" => "GET",
+              "sub_request_id" => "search",
+              "uri" => "/crm/v8/Contacts/search"
+            },
             %{
               "method" => "PUT",
-              "reference_id" => "update",
-              "url" => "/crm/v8/Contacts/@{search:$.data[0].id}"
+              "sub_request_id" => "update",
+              "uri" => "/crm/v8/Contacts/@{search:$.data[0].id}"
             }
           ]
         })
@@ -307,11 +311,15 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
         |> InputRequest.with_body(%{
           "parallel_execution" => true,
           "__composite_requests" => [
-            %{"method" => "GET", "reference_id" => "search", "url" => "/crm/v8/Contacts/search"},
+            %{
+              "method" => "GET",
+              "sub_request_id" => "search",
+              "uri" => "/crm/v8/Contacts/search"
+            },
             %{
               "method" => "PUT",
-              "reference_id" => "update",
-              "url" => "/crm/v8/Contacts/@{search:$.data[0].id}"
+              "sub_request_id" => "update",
+              "uri" => "/crm/v8/Contacts/@{search:$.data[0].id}"
             }
           ]
         })
@@ -326,8 +334,8 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
       request = Composite.build_request(:get, "ref_1", "/crm/v8/Leads")
 
       assert request["method"] == "GET"
-      assert request["reference_id"] == "ref_1"
-      assert request["url"] == "/crm/v8/Leads"
+      assert request["sub_request_id"] == "ref_1"
+      assert request["uri"] == "/crm/v8/Leads"
       refute Map.has_key?(request, "body")
     end
 
@@ -336,7 +344,7 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
       request = Composite.build_request(:post, "ref_2", "/crm/v8/Leads", body: body)
 
       assert request["method"] == "POST"
-      assert request["reference_id"] == "ref_2"
+      assert request["sub_request_id"] == "ref_2"
       assert request["body"] == body
     end
   end
