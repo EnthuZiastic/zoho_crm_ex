@@ -58,13 +58,12 @@ defmodule ZohoAPI.Modules.CRM.Composite do
       @{reference_id:$.json_path}
 
   Where:
-    - `reference_id` - The `reference_id` of the earlier request
+    - `sub_request_id` - The `sub_request_id` of the earlier request (e.g. `"1"`, `"2"`)
     - `$.json_path` - JSONPath expression to extract data from that response body
 
   Common patterns (path is relative to the sub-request's response body):
-    - `@{search_contact:$.data[0].id}` - ID from a GET/search result
-    - `@{create_record:$.data[0].details.id}` - ID from a POST create result
-    - `@{1:$.data[0].id}` - numeric reference_ids also work
+    - `@{1:$.data[0].id}` - ID from a GET/search result
+    - `@{1:$.data[0].details.id}` - ID from a POST/PUT create/update result
 
   ### Error Handling in Sequential Mode
 
@@ -101,12 +100,12 @@ defmodule ZohoAPI.Modules.CRM.Composite do
         "__composite_requests" => [
           %{
             "method" => "GET",
-            "reference_id" => "leads_list",
+            "sub_request_id" => "1",
             "uri" => "/crm/v8/Leads"
           },
           %{
             "method" => "POST",
-            "reference_id" => "create_contact",
+            "sub_request_id" => "2",
             "uri" => "/crm/v8/Contacts",
             "body" => %{
               "data" => [%{"Last_Name" => "New Contact"}]
@@ -123,16 +122,16 @@ defmodule ZohoAPI.Modules.CRM.Composite do
         "parallel_execution" => false,
         "__composite_requests" => [
           %{
-            "method" => "GET",
-            "reference_id" => "search_contact",
-            "uri" => "/crm/v8/Contacts/search",
-            "params" => %{"criteria" => "(Email:equals:test@example.com)"}
+            "method" => "POST",
+            "sub_request_id" => "1",
+            "uri" => "/crm/v8/Leads",
+            "body" => %{"data" => [%{"Last_Name" => "Boyle"}]}
           },
           %{
             "method" => "PUT",
-            "reference_id" => "update_contact",
-            "uri" => "/crm/v8/Contacts/@{search_contact:$.data[0].id}",
-            "body" => %{"data" => [%{"Phone" => "555-1234"}]}
+            "sub_request_id" => "2",
+            "uri" => "/crm/v8/Leads/@{1:$.data[0].details.id}",
+            "body" => %{"data" => [%{"Company" => "ABC"}]}
           }
         ]
       })
@@ -151,7 +150,7 @@ defmodule ZohoAPI.Modules.CRM.Composite do
   ## Required Fields
 
     - `"method"` - HTTP method: "GET", "POST", "PUT", or "DELETE"
-    - `"reference_id"` - Unique identifier for this request
+    - `"sub_request_id"` - Unique identifier for this request (used in placeholder references)
     - `"uri"` - API endpoint path (e.g., "/crm/v8/Leads")
 
   ## Optional Fields
@@ -191,7 +190,7 @@ defmodule ZohoAPI.Modules.CRM.Composite do
         "__composite_requests" => [
           %{
             "method" => "GET" | "POST" | "PUT" | "DELETE",
-            "reference_id" => "unique_reference",
+            "sub_request_id" => "unique_id",
             "uri" => "/crm/v8/ModuleName",
             "body" => %{...},   # Optional, for POST/PUT requests
             "params" => %{...}  # Optional, query parameters (e.g., search criteria)
@@ -318,11 +317,12 @@ defmodule ZohoAPI.Modules.CRM.Composite do
     # First validate each individual request (including type check)
     case validate_all_requests(requests) do
       :ok ->
-        # Then check for duplicate reference_ids (only after we know all are maps)
-        reference_ids = Enum.map(requests, &Map.get(&1, "reference_id"))
+        # Then check for duplicate sub_request_ids (only after we know all are maps)
+        sub_request_ids = Enum.map(requests, &Map.get(&1, "sub_request_id"))
 
-        if length(reference_ids) != length(Enum.uniq(reference_ids)) do
-          {:error, "Duplicate reference_id found. Each request must have a unique reference_id"}
+        if length(sub_request_ids) != length(Enum.uniq(sub_request_ids)) do
+          {:error,
+           "Duplicate sub_request_id found. Each request must have a unique sub_request_id"}
         else
           :ok
         end
@@ -345,10 +345,10 @@ defmodule ZohoAPI.Modules.CRM.Composite do
 
   defp validate_single_request(request, index) when is_map(request) do
     with :ok <- validate_required_field(request, "method", index),
-         :ok <- validate_required_field(request, "reference_id", index),
+         :ok <- validate_required_field(request, "sub_request_id", index),
          :ok <- validate_required_field(request, "uri", index),
          :ok <- validate_method(request["method"], index),
-         :ok <- validate_non_empty_string(request["reference_id"], "reference_id", index) do
+         :ok <- validate_non_empty_string(request["sub_request_id"], "sub_request_id", index) do
       validate_non_empty_string(request["uri"], "uri", index)
     end
   end
@@ -398,28 +398,34 @@ defmodule ZohoAPI.Modules.CRM.Composite do
   ## Parameters
 
     - `method` - HTTP method (:get, :post, :put, :delete)
-    - `reference_id` - Unique identifier for this request
+    - `sub_request_id` - Unique identifier for this request (used in placeholder references as `@{id:$.path}`)
     - `uri` - API endpoint path (e.g., "/crm/v8/Leads")
-    - `opts` - Optional keyword list with `:body` for POST/PUT requests
+    - `opts` - Optional keyword list with `:body` for POST/PUT requests and `:params` for query params
 
   ## Examples
 
-      Composite.build_request(:get, "get_leads", "/crm/v8/Leads")
-      Composite.build_request(:post, "create_lead", "/crm/v8/Leads",
+      Composite.build_request(:get, "1", "/crm/v8/Leads")
+      Composite.build_request(:post, "1", "/crm/v8/Leads",
         body: %{"data" => [%{"Last_Name" => "Test"}]}
+      )
+      # Reference earlier result via placeholder:
+      Composite.build_request(:put, "2", "/crm/v8/Leads/@{1:$.data[0].details.id}",
+        body: %{"data" => [%{"Company" => "ABC"}]}
       )
   """
   @spec build_request(atom(), String.t(), String.t(), keyword()) :: map()
-  def build_request(method, reference_id, uri, opts \\ []) do
+  def build_request(method, sub_request_id, uri, opts \\ []) do
     base = %{
       "method" => method |> Atom.to_string() |> String.upcase(),
-      "reference_id" => reference_id,
+      "sub_request_id" => sub_request_id,
       "uri" => uri
     }
 
-    case Keyword.get(opts, :body) do
-      nil -> base
-      body -> Map.put(base, "body", body)
-    end
+    base
+    |> maybe_put_opt("body", Keyword.get(opts, :body))
+    |> maybe_put_opt("params", Keyword.get(opts, :params))
   end
+
+  defp maybe_put_opt(map, _key, nil), do: map
+  defp maybe_put_opt(map, key, value), do: Map.put(map, key, value)
 end
