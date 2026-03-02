@@ -7,7 +7,6 @@ defmodule ZohoAPI.Modules.Projects do
   alias ZohoAPI.Request
 
   @api_type "portal"
-  @project_base "https://projectsapi.zoho.in/restapi"
 
   @type portal_id() :: String.t()
   @type project_id() :: String.t()
@@ -133,7 +132,6 @@ defmodule ZohoAPI.Modules.Projects do
 
   defp construct_request(%InputRequest{} = ir) do
     Request.new(@api_type)
-    |> Request.set_base_url(@project_base)
     |> Request.set_access_token(ir.access_token)
     |> Request.with_params(ir.query_params)
   end
