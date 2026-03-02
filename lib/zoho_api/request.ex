@@ -434,7 +434,7 @@ defmodule ZohoAPI.Request do
   # Projects/Portal API
   def construct_url(%__MODULE__{api_type: "portal"} = r) do
     base_url = get_region_url(:projects, r.region)
-    base = "#{base_url}#{r.path}"
+    base = "#{base_url}/restapi#{r.path}"
     append_params(base, r.params)
   end
 
