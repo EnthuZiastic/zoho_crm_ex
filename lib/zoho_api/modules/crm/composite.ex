@@ -20,12 +20,11 @@ defmodule ZohoAPI.Modules.CRM.Composite do
     - Each sub-request is executed independently
     - If request 3 of 5 fails, requests 1-2 may have already succeeded
     - Failed requests do not roll back previously successful requests
-    - Each response in `__composite_responses` includes its own status code
     - In parallel mode (default), requests cannot reference data from earlier responses
     - In sequential mode (`parallel_execution: false`), later requests CAN reference
       earlier responses using placeholder syntax (see "Execution Control" section)
 
-  Always check individual response status codes:
+  Always check individual response codes:
 
       {:ok, %{"__composite_responses" => responses}} = Composite.execute(input)
 
@@ -33,7 +32,7 @@ defmodule ZohoAPI.Modules.CRM.Composite do
         case response["status_code"] do
           200 -> # Success
           201 -> # Created
-          code -> # Handle error for this specific request
+          _ -> # Handle error — check response["code"] and response["body"]
         end
       end)
 
@@ -60,12 +59,12 @@ defmodule ZohoAPI.Modules.CRM.Composite do
 
   Where:
     - `reference_id` - The `reference_id` of the earlier request
-    - `$.json_path` - JSONPath expression to extract data from that response
+    - `$.json_path` - JSONPath expression to extract data from that response body
 
-  Common patterns:
-    - `@{search_contact:$.data[0].id}` - Get the ID from request "search_contact"
-    - `@{1:$.data[0].id}` - Get the ID from request "1" (numeric reference_ids also work)
-    - `@{search:$.data[0].Account_Name.id}` - Get a nested field value
+  Common patterns (path is relative to the sub-request's response body):
+    - `@{search_contact:$.data[0].id}` - ID from a GET/search result
+    - `@{create_record:$.data[0].details.id}` - ID from a POST create result
+    - `@{1:$.data[0].id}` - numeric reference_ids also work
 
   ### Error Handling in Sequential Mode
 
@@ -74,54 +73,25 @@ defmodule ZohoAPI.Modules.CRM.Composite do
 
       # If the search returns 204 (no content), the placeholder @{1:$.data[0].id}
       # will be invalid, causing an INVALID_REFERENCE error in the second request.
-      # Check for this in __composite_responses:
       case result do
         {:ok, %{"__composite_responses" => [
-          %{"status_code" => 204},  # Search found nothing
+          %{"code" => "NO_CONTENT"},  # Search found nothing
           %{"code" => "INVALID_REFERENCE"}  # Reference couldn't resolve
         ]}} ->
           {:error, :not_found}
 
-        {:ok, %{"__composite_responses" => [_, %{"status_code" => 200}]}} ->
+        {:ok, %{"__composite_responses" => [_, %{"status_code" => code}]}} when code in 200..299 ->
           :ok
       end
 
-  ## Cleanup Strategies
+  ## Response Format
 
-  If you need transactional behavior, implement cleanup logic:
+  `execute/1` normalizes Zoho's raw response into a consistent format.
+  Each item in `__composite_responses` has:
 
-      {:ok, %{"__composite_responses" => responses}} = Composite.execute(input)
-
-      # Partition by success/failure
-      {successes, failures} =
-        Enum.split_with(responses, fn r ->
-          r["status_code"] in 200..299
-        end)
-
-      # If any failed, clean up the successful creates
-      if length(failures) > 0 do
-        created_ids =
-          successes
-          |> Enum.filter(&(&1["body"]["data"]))
-          |> Enum.flat_map(fn r ->
-            Enum.map(r["body"]["data"], & &1["details"]["id"])
-          end)
-
-        if length(created_ids) > 0 do
-          # Delete the partially created records
-          cleanup_input = InputRequest.new(access_token)
-          |> InputRequest.with_body(%{
-            "__composite_requests" => [
-              %{
-                "method" => "DELETE",
-                "reference_id" => "cleanup",
-                "url" => "/crm/v8/Leads?ids=\#{Enum.join(created_ids, ",")}"
-              }
-            ]
-          })
-          Composite.execute(cleanup_input)
-        end
-      end
+    - `"code"` - `"SUCCESS"` on success, or an error code (e.g. `"INVALID_REFERENCE"`)
+    - `"status_code"` - HTTP status code for this sub-request (nil on error)
+    - `"body"` - response body map (nil on error)
 
   ## Examples
 
@@ -132,12 +102,12 @@ defmodule ZohoAPI.Modules.CRM.Composite do
           %{
             "method" => "GET",
             "reference_id" => "leads_list",
-            "url" => "/crm/v8/Leads"
+            "uri" => "/crm/v8/Leads"
           },
           %{
             "method" => "POST",
             "reference_id" => "create_contact",
-            "url" => "/crm/v8/Contacts",
+            "uri" => "/crm/v8/Contacts",
             "body" => %{
               "data" => [%{"Last_Name" => "New Contact"}]
             }
@@ -148,8 +118,6 @@ defmodule ZohoAPI.Modules.CRM.Composite do
       {:ok, result} = Composite.execute(input)
 
       # Sequential execution with data reference from previous request
-      # Note: If search returns no results (204), the placeholder will fail with
-      # INVALID_REFERENCE. See "Error Handling in Sequential Mode" above.
       input = InputRequest.new("access_token")
       |> InputRequest.with_body(%{
         "parallel_execution" => false,
@@ -157,13 +125,13 @@ defmodule ZohoAPI.Modules.CRM.Composite do
           %{
             "method" => "GET",
             "reference_id" => "search_contact",
-            "url" => "/crm/v8/Contacts/search",
+            "uri" => "/crm/v8/Contacts/search",
             "params" => %{"criteria" => "(Email:equals:test@example.com)"}
           },
           %{
             "method" => "PUT",
             "reference_id" => "update_contact",
-            "url" => "/crm/v8/Contacts/@{search_contact:$.data[0].id}",
+            "uri" => "/crm/v8/Contacts/@{search_contact:$.data[0].id}",
             "body" => %{"data" => [%{"Phone" => "555-1234"}]}
           }
         ]
@@ -184,11 +152,12 @@ defmodule ZohoAPI.Modules.CRM.Composite do
 
     - `"method"` - HTTP method: "GET", "POST", "PUT", or "DELETE"
     - `"reference_id"` - Unique identifier for this request
-    - `"url"` - API endpoint URL (e.g., "/crm/v8/Leads")
+    - `"uri"` - API endpoint path (e.g., "/crm/v8/Leads")
 
   ## Optional Fields
 
     - `"body"` - Request body for POST/PUT requests
+    - `"params"` - Query parameters map
   """
   @type composite_request :: %{
           required(String.t()) => String.t() | map(),
@@ -196,17 +165,15 @@ defmodule ZohoAPI.Modules.CRM.Composite do
         }
 
   @typedoc """
-  A composite response item.
+  A normalized composite response item.
 
   ## Fields
 
-    - `"status_code"` - HTTP status code for this sub-request
-    - `"reference_id"` - The reference_id from the corresponding request
-    - `"body"` - Response body
+    - `"code"` - `"SUCCESS"` on success, or error code string
+    - `"status_code"` - HTTP status code for this sub-request (nil on error)
+    - `"body"` - Response body map (nil on error)
   """
-  @type composite_response :: %{
-          String.t() => integer() | String.t() | map()
-        }
+  @type composite_response :: %{String.t() => integer() | String.t() | map() | nil}
 
   @doc """
   Executes multiple API requests in a single call.
@@ -225,7 +192,7 @@ defmodule ZohoAPI.Modules.CRM.Composite do
           %{
             "method" => "GET" | "POST" | "PUT" | "DELETE",
             "reference_id" => "unique_reference",
-            "url" => "/crm/v8/ModuleName",
+            "uri" => "/crm/v8/ModuleName",
             "body" => %{...},   # Optional, for POST/PUT requests
             "params" => %{...}  # Optional, query parameters (e.g., search criteria)
           }
@@ -250,16 +217,39 @@ defmodule ZohoAPI.Modules.CRM.Composite do
       )
     end
 
-    with :ok <- validate_composite_requests(r.body) do
-      Request.new("composite")
-      |> Request.set_access_token(r.access_token)
-      |> Request.with_region(r.region)
-      |> Request.with_params(r.query_params)
-      |> Request.with_body(r.body)
-      |> Request.with_method(:post)
-      |> Request.send()
+    with :ok <- validate_composite_requests(r.body),
+         {:ok, raw_response} <-
+           Request.new("composite")
+           |> Request.set_access_token(r.access_token)
+           |> Request.with_region(r.region)
+           |> Request.with_params(r.query_params)
+           |> Request.with_body(r.body)
+           |> Request.with_method(:post)
+           |> Request.send() do
+      {:ok, normalize_response(raw_response)}
     end
   end
+
+  # Zoho returns results under "__composite_requests" key with nested response info.
+  # Normalize each item to %{"code", "status_code", "body"} for consistent access.
+  defp normalize_response(%{"__composite_requests" => responses}) when is_list(responses) do
+    %{"__composite_responses" => Enum.map(responses, &normalize_sub_response/1)}
+  end
+
+  defp normalize_response(other), do: other
+
+  defp normalize_sub_response(%{
+         "code" => "SUCCESS",
+         "details" => %{"response" => %{"body" => body, "status_code" => status_code}}
+       }) do
+    %{"code" => "SUCCESS", "status_code" => status_code, "body" => body}
+  end
+
+  defp normalize_sub_response(%{"code" => code} = response) do
+    %{"code" => code, "status_code" => nil, "body" => nil, "details" => response["details"]}
+  end
+
+  defp normalize_sub_response(response), do: response
 
   defp validate_composite_requests(%{"__composite_requests" => []}),
     do: {:error, "At least one composite request is required"}
@@ -297,8 +287,9 @@ defmodule ZohoAPI.Modules.CRM.Composite do
     has_placeholders =
       Enum.any?(requests, fn
         req when is_map(req) ->
-          url = Map.get(req, "url", "")
-          String.contains?(url, "@{")
+          uri = Map.get(req, "uri", "")
+          body = req |> Map.get("body", %{}) |> inspect()
+          String.contains?(uri, "@{") or String.contains?(body, "@{")
 
         _ ->
           false
@@ -355,10 +346,10 @@ defmodule ZohoAPI.Modules.CRM.Composite do
   defp validate_single_request(request, index) when is_map(request) do
     with :ok <- validate_required_field(request, "method", index),
          :ok <- validate_required_field(request, "reference_id", index),
-         :ok <- validate_required_field(request, "url", index),
+         :ok <- validate_required_field(request, "uri", index),
          :ok <- validate_method(request["method"], index),
          :ok <- validate_non_empty_string(request["reference_id"], "reference_id", index) do
-      validate_non_empty_string(request["url"], "url", index)
+      validate_non_empty_string(request["uri"], "uri", index)
     end
   end
 
@@ -408,7 +399,7 @@ defmodule ZohoAPI.Modules.CRM.Composite do
 
     - `method` - HTTP method (:get, :post, :put, :delete)
     - `reference_id` - Unique identifier for this request
-    - `url` - API endpoint URL (e.g., "/crm/v8/Leads")
+    - `uri` - API endpoint path (e.g., "/crm/v8/Leads")
     - `opts` - Optional keyword list with `:body` for POST/PUT requests
 
   ## Examples
@@ -419,11 +410,11 @@ defmodule ZohoAPI.Modules.CRM.Composite do
       )
   """
   @spec build_request(atom(), String.t(), String.t(), keyword()) :: map()
-  def build_request(method, reference_id, url, opts \\ []) do
+  def build_request(method, reference_id, uri, opts \\ []) do
     base = %{
       "method" => method |> Atom.to_string() |> String.upcase(),
       "reference_id" => reference_id,
-      "url" => url
+      "uri" => uri
     }
 
     case Keyword.get(opts, :body) do
