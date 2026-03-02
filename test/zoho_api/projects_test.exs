@@ -28,7 +28,9 @@ defmodule ZohoAPI.ProjectsTest do
 
   describe "create_task/3" do
     test "returns {:ok, task_id} as string when response has integer id" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn _method, _url, _body, _headers, _opts ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn _method, url, _body, _headers, _opts ->
+        assert url =~ "/restapi/portal/"
+
         {:ok,
          %HTTPoison.Response{
            status_code: 200,
@@ -40,7 +42,9 @@ defmodule ZohoAPI.ProjectsTest do
     end
 
     test "returns {:ok, task_id} as string when response has string id" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn _method, _url, _body, _headers, _opts ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn _method, url, _body, _headers, _opts ->
+        assert url =~ "/restapi/portal/"
+
         {:ok,
          %HTTPoison.Response{
            status_code: 200,
@@ -52,7 +56,9 @@ defmodule ZohoAPI.ProjectsTest do
     end
 
     test "returns {:error, other} on unexpected response shape" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn _method, _url, _body, _headers, _opts ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn _method, url, _body, _headers, _opts ->
+        assert url =~ "/restapi/portal/"
+
         {:ok,
          %HTTPoison.Response{
            status_code: 200,
@@ -66,7 +72,9 @@ defmodule ZohoAPI.ProjectsTest do
 
   describe "update_task/4" do
     test "returns {:ok, task_id} as string when response has integer id (no crash)" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn _method, _url, _body, _headers, _opts ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn _method, url, _body, _headers, _opts ->
+        assert url =~ "/restapi/portal/"
+
         {:ok,
          %HTTPoison.Response{
            status_code: 200,
@@ -79,7 +87,9 @@ defmodule ZohoAPI.ProjectsTest do
     end
 
     test "returns {:ok, task_id} as string when response has string id" do
-      expect(ZohoAPI.HTTPClientMock, :request, fn _method, _url, _body, _headers, _opts ->
+      expect(ZohoAPI.HTTPClientMock, :request, fn _method, url, _body, _headers, _opts ->
+        assert url =~ "/restapi/portal/"
+
         {:ok,
          %HTTPoison.Response{
            status_code: 200,
