@@ -60,6 +60,7 @@ defmodule ZohoAPI.Modules.Bulk.Read do
   Polling for job completion is recommended rather than waiting for a single long request.
   """
 
+  alias ZohoAPI.HTTPClient
   alias ZohoAPI.InputRequest
   alias ZohoAPI.Request
   alias ZohoAPI.Validation
@@ -246,7 +247,9 @@ defmodule ZohoAPI.Modules.Bulk.Read do
   def download_result(download_url, opts \\ []) do
     timeout = Keyword.get(opts, :timeout, 120_000)
 
-    case Req.get(download_url, receive_timeout: timeout, decode_body: false) do
+    options = [timeout: timeout, recv_timeout: timeout]
+
+    case HTTPClient.impl().request(:get, download_url, "", [], options) do
       {:ok, %Req.Response{status: 200, body: body}} ->
         {:ok, body}
 
