@@ -32,8 +32,8 @@ defmodule ZohoAPI.MeetingTest do
         assert url =~ "12345/sessions.json"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{"session" => %{"meetingKey" => "mtg_abc", "joinLink" => "https://"}})
          }}
@@ -46,8 +46,8 @@ defmodule ZohoAPI.MeetingTest do
     test "returns {:error, other} when response has no 'session' key (error shape fix)" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"message" => "unexpected"})
          }}
       end)
@@ -67,8 +67,8 @@ defmodule ZohoAPI.MeetingTest do
         assert url =~ "12345/sessions.json"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"sessions" => [%{"id" => "s1"}, %{"id" => "s2"}]})
          }}
       end)
@@ -86,8 +86,7 @@ defmodule ZohoAPI.MeetingTest do
       expect(ZohoAPI.HTTPClientMock, :request, fn :delete, url, _body, _headers, _opts ->
         assert url =~ "12345/sessions/key_abc.json"
 
-        {:ok,
-         %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"message" => "deleted"})}}
+        {:ok, %Req.Response{status: 200, body: Jason.encode!(%{"message" => "deleted"})}}
       end)
 
       assert :ok = Meeting.delete_session("12345", "key_abc")
@@ -104,8 +103,8 @@ defmodule ZohoAPI.MeetingTest do
         assert url =~ "12345/participant/key_abc.json"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"participants" => [%{"name" => "Alice"}]})
          }}
       end)
@@ -121,8 +120,8 @@ defmodule ZohoAPI.MeetingTest do
         assert url =~ "12345/recordings/key_abc.json"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"recordings" => [%{"url" => "https://rec"}]})
          }}
       end)
@@ -141,8 +140,8 @@ defmodule ZohoAPI.MeetingTest do
         assert url =~ "user.json"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"userDetails" => %{"zsoid" => "12345"}})
          }}
       end)

@@ -41,8 +41,8 @@ defmodule ZohoAPI.CRM.BulkWriteTest do
         assert url =~ "crm/bulk/v8/write/file"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "status" => "success",
@@ -56,8 +56,8 @@ defmodule ZohoAPI.CRM.BulkWriteTest do
         refute url =~ "/file"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body:
              Jason.encode!(%{
                "status" => "ADDED",
@@ -81,8 +81,8 @@ defmodule ZohoAPI.CRM.BulkWriteTest do
         assert url =~ "crm/bulk/v8/write/job_completed"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"state" => "COMPLETED", "result" => %{"added_count" => 50}})
          }}
       end)
@@ -99,8 +99,8 @@ defmodule ZohoAPI.CRM.BulkWriteTest do
         assert url =~ "crm/bulk/v8/write/job_failed"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"state" => "FAILED", "message" => "Job failed"})
          }}
       end)

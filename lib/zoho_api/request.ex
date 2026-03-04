@@ -355,7 +355,7 @@ defmodule ZohoAPI.Request do
     # Receive timeout (for receiving response data)
     receive_timeout = r.recv_timeout || r.timeout || default_timeout
 
-    options = [timeout: connection_timeout, recv_timeout: receive_timeout]
+    options = [connect_timeout: connection_timeout, receive_timeout: receive_timeout]
 
     case encode_body(r.body) do
       {:ok, body} ->
@@ -386,12 +386,16 @@ defmodule ZohoAPI.Request do
   defp encode_body(nil), do: {:ok, ""}
   defp encode_body(body), do: {:ok, to_string(body)}
 
-  defp handle_raw_response({:ok, %HTTPoison.Response{body: body, status_code: status_code}}) do
+  defp handle_raw_response({:ok, %Req.Response{body: body, status: status_code}}) do
     {:ok, status_code, json_or_value(body)}
   end
 
-  defp handle_raw_response({:error, %HTTPoison.Error{reason: reason}}) do
+  defp handle_raw_response({:error, %{reason: reason}}) do
     {:error, reason}
+  end
+
+  defp handle_raw_response({:error, exception}) do
+    {:error, exception}
   end
 
   defp json_or_value(data) when is_binary(data) do

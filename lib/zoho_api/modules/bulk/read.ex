@@ -53,7 +53,7 @@ defmodule ZohoAPI.Modules.Bulk.Read do
   Bulk operations process large datasets and may take longer than standard API calls.
   Consider using longer HTTP timeouts when working with bulk operations:
 
-      # Default HTTPoison timeout is 5 seconds which may be insufficient
+      # Default timeout is 5 seconds which may be insufficient
       # Configure longer timeouts at the application level or use recv_timeout option
       config :zoho_api, :http_options, recv_timeout: 120_000  # 2 minutes
 
@@ -246,15 +246,15 @@ defmodule ZohoAPI.Modules.Bulk.Read do
   def download_result(download_url, opts \\ []) do
     timeout = Keyword.get(opts, :timeout, 120_000)
 
-    case HTTPoison.get(download_url, [], recv_timeout: timeout) do
-      {:ok, %HTTPoison.Response{status_code: 200, body: body}} ->
+    case Req.get(download_url, receive_timeout: timeout, decode_body: false, retry: false) do
+      {:ok, %Req.Response{status: 200, body: body}} ->
         {:ok, body}
 
-      {:ok, %HTTPoison.Response{status_code: status_code, body: body}} ->
+      {:ok, %Req.Response{status: status_code, body: body}} ->
         {:error, %{status_code: status_code, body: body}}
 
-      {:error, %HTTPoison.Error{reason: reason}} ->
-        {:error, reason}
+      {:error, exception} ->
+        {:error, exception}
     end
   end
 

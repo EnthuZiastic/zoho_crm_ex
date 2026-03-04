@@ -15,8 +15,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "data" => [
@@ -40,7 +40,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "recruit.zoho.com/recruit/v2/Candidates"
 
-        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"data" => []})}}
+        {:ok, %Req.Response{status: 200, body: Jason.encode!(%{"data" => []})}}
       end)
 
       input =
@@ -58,8 +58,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert url =~ "fields=Email" or url =~ "Last_Name%2CEmail"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "data" => [%{"Last_Name" => "Smith", "Email" => "smith@example.com"}]
@@ -83,7 +83,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert url =~ "page=2"
         assert url =~ "per_page=50"
 
-        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"data" => []})}}
+        {:ok, %Req.Response{status: 200, body: Jason.encode!(%{"data" => []})}}
       end)
 
       input =
@@ -101,8 +101,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert url =~ "recruit.zoho.in/recruit/v2/Candidates/record_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "record_123", "Last_Name" => "Smith"}]})
          }}
       end)
@@ -136,8 +136,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert body_map["data"] == [%{"Last_Name" => "Smith", "Email" => "smith@example.com"}]
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body:
              Jason.encode!(%{
                "data" => [%{"code" => "SUCCESS", "details" => %{"id" => "new_123"}}]
@@ -165,8 +165,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert hd(body_map["data"])["id"] == "record_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"code" => "SUCCESS"}]})
          }}
       end)
@@ -191,8 +191,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert body_map["duplicate_check_fields"] == ["Email"]
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"code" => "SUCCESS"}]})
          }}
       end)
@@ -222,8 +222,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         refute is_map(body_map["data"]) and Map.has_key?(body_map["data"], "data")
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"code" => "SUCCESS"}]})
          }}
       end)
@@ -246,8 +246,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert is_list(body_map["data"])
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"code" => "SUCCESS"}]})
          }}
       end)
@@ -270,8 +270,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert url =~ "criteria"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "123"}]})
          }}
       end)
@@ -295,8 +295,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert url =~ "ids=123" or url =~ "ids=123%2C456"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "data" => [
@@ -324,8 +324,8 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
         assert url =~ "recruit.zoho.in/recruit/v2/Candidates/record_123/associate"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "assoc_1"}]})
          }}
       end)
@@ -355,7 +355,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, url, _body, _headers, _opts ->
         assert url =~ "recruit.zoho.in/recruit/v2/Candidates"
 
-        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"data" => []})}}
+        {:ok, %Req.Response{status: 200, body: Jason.encode!(%{"data" => []})}}
       end)
 
       input =
@@ -369,7 +369,7 @@ defmodule ZohoAPI.Modules.Recruit.RecordsTest do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, url, _body, _headers, _opts ->
         assert url =~ "recruit.zoho.in/recruit/v2/Candidates"
 
-        {:ok, %HTTPoison.Response{status_code: 201, body: Jason.encode!(%{"data" => []})}}
+        {:ok, %Req.Response{status: 201, body: Jason.encode!(%{"data" => []})}}
       end)
 
       input =

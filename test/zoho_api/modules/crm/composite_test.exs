@@ -18,8 +18,8 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
         assert length(body_map["__composite_requests"]) == 2
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "__composite_responses" => [
@@ -68,8 +68,8 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
         assert length(body_map["__composite_requests"]) == 2
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "__composite_responses" => [
@@ -251,8 +251,8 @@ defmodule ZohoAPI.Modules.CRM.CompositeTest do
     test "accepts lowercase HTTP methods" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"__composite_responses" => []})
          }}
       end)

@@ -15,8 +15,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "file_1"}]})
          }}
       end)
@@ -34,8 +34,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
         assert url =~ "files/file_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "data" => %{"id" => "file_123", "attributes" => %{"name" => "test.pdf"}}
@@ -56,8 +56,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
         assert url =~ "download/file_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: "binary file content"
          }}
       end)
@@ -77,8 +77,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
         assert body_map["data"]["attributes"]["name"] == "renamed.pdf"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => %{"id" => "file_123"}})
          }}
       end)
@@ -106,8 +106,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
         assert body_map["data"]["attributes"]["parent_id"] == "new_folder"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => %{"id" => "file_123"}})
          }}
       end)
@@ -133,8 +133,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
         assert url =~ "files/file_123/copy"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body: Jason.encode!(%{"data" => %{"id" => "file_copy"}})
          }}
       end)
@@ -160,8 +160,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
         assert url =~ "files/file_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 204,
+         %Req.Response{
+           status: 204,
            body: ""
          }}
       end)
@@ -178,8 +178,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FilesTest do
         assert url =~ "search_string=report"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "file_1"}]})
          }}
       end)

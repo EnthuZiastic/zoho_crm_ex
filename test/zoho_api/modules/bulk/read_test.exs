@@ -18,8 +18,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
         assert body_map["query"]["module"]["api_name"] == "Leads"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body:
              Jason.encode!(%{
                "status" => "ADDED",
@@ -63,8 +63,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
         assert url =~ "crm/bulk/v8/read"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body: Jason.encode!(%{"status" => "ADDED", "details" => %{"id" => "job_789"}})
          }}
       end)
@@ -89,8 +89,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
         assert body_map["query"]["module"]["api_name"] == "Candidates"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body:
              Jason.encode!(%{
                "status" => "ADDED",
@@ -124,8 +124,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
         assert url =~ "recruit.zoho.com/recruit/bulk/v2/read"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body: Jason.encode!(%{"status" => "ADDED", "details" => %{"id" => "job_us"}})
          }}
       end)
@@ -145,8 +145,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
         assert url =~ "crm/bulk/v8/read/job_456"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "status" => "COMPLETED",
@@ -171,8 +171,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
         assert url =~ "recruit.zoho.in/recruit/bulk/v2/read/recruit_job_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "status" => "IN_PROGRESS",
@@ -199,8 +199,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
     test "returns immediately when job is completed" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "status" => "COMPLETED",
@@ -221,8 +221,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
     test "returns error when job fails" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"status" => "FAILED"})
          }}
       end)
@@ -243,8 +243,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
         status = if call_count == 0, do: "IN_PROGRESS", else: "COMPLETED"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"status" => status, "result" => %{}})
          }}
       end)
@@ -261,8 +261,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
     test "times out after max_attempts" do
       expect(ZohoAPI.HTTPClientMock, :request, 2, fn :get, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"status" => "IN_PROGRESS"})
          }}
       end)
@@ -301,8 +301,8 @@ defmodule ZohoAPI.Modules.Bulk.ReadTest do
         assert body_map == %{}
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 400,
+         %Req.Response{
+           status: 400,
            body: Jason.encode!(%{"code" => "INVALID_DATA", "message" => "query is required"})
          }}
       end)

@@ -18,8 +18,8 @@ defmodule ZohoAPI.Modules.CRM.BulkReadTest do
         assert body_map["query"]["module"]["api_name"] == "Leads"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body:
              Jason.encode!(%{
                "status" => "ADDED",
@@ -55,8 +55,8 @@ defmodule ZohoAPI.Modules.CRM.BulkReadTest do
         assert url =~ "crm/bulk/v8/read/job_456"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "status" => "COMPLETED",

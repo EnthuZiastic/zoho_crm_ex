@@ -30,8 +30,8 @@ defmodule ZohoAPI.BookingsTest do
     test "returns {:ok, result} on success response" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "response" => %{
@@ -49,8 +49,8 @@ defmodule ZohoAPI.BookingsTest do
     test "returns {:error, resp} on failure returnvalue status" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "response" => %{
@@ -67,8 +67,8 @@ defmodule ZohoAPI.BookingsTest do
     test "returns {:error, other} on unexpected response shape" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"error" => "Something went wrong"})
          }}
       end)
@@ -81,8 +81,8 @@ defmodule ZohoAPI.BookingsTest do
     test "returns {:error, resp} on failure status" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "response" => %{
@@ -101,8 +101,8 @@ defmodule ZohoAPI.BookingsTest do
     test "returns {:error, other} on unexpected response shape" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"error" => "Update failed"})
          }}
       end)
@@ -115,8 +115,8 @@ defmodule ZohoAPI.BookingsTest do
     test "returns {:ok, result} on success" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "response" => %{
