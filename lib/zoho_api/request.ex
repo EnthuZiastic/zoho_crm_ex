@@ -390,6 +390,8 @@ defmodule ZohoAPI.Request do
     {:ok, status_code, json_or_value(body)}
   end
 
+  # Req wraps transport errors in a struct with a :reason field (e.g. %Mint.TransportError{}).
+  # The second clause handles plain atoms or other error terms returned by custom clients / mocks.
   defp handle_raw_response({:error, %{reason: reason}}) do
     {:error, reason}
   end
