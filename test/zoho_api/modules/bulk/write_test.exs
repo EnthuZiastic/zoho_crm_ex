@@ -17,8 +17,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         assert body == "Last_Name,Email\nSmith,smith@example.com"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "status" => "success",
@@ -58,8 +58,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         assert {"Content-Type", "text/csv"} in headers
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "status" => "success",
@@ -114,8 +114,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         assert body_map["operation"] == "insert"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body:
              Jason.encode!(%{
                "status" => "ADDED",
@@ -156,8 +156,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         refute url =~ "write/file"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body:
              Jason.encode!(%{
                "status" => "ADDED",
@@ -182,8 +182,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         assert url =~ "crm/bulk/v8/write/job_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"status" => "COMPLETED"})
          }}
       end)
@@ -199,8 +199,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         assert url =~ "recruit.zoho.in/recruit/bulk/v2/write/recruit_job_456"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"status" => "IN_PROGRESS"})
          }}
       end)
@@ -223,8 +223,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
     test "returns immediately when job is completed" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"status" => "COMPLETED", "result" => %{}})
          }}
       end)
@@ -240,8 +240,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
     test "returns error when job fails" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"status" => "FAILED"})
          }}
       end)
@@ -262,8 +262,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         status = if call_count == 0, do: "ADDED", else: "COMPLETED"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"status" => status})
          }}
       end)
@@ -304,8 +304,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
     test "accepts file just under 25 MB limit" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :post, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"status" => "success", "details" => %{"file_id" => "ok"}})
          }}
       end)
@@ -328,8 +328,8 @@ defmodule ZohoAPI.Modules.Bulk.WriteTest do
         assert body == ""
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{"status" => "success", "details" => %{"file_id" => "empty_file"}})
          }}

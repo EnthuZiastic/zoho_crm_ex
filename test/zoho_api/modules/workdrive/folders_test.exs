@@ -15,8 +15,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FoldersTest do
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "folder_1"}]})
          }}
       end)
@@ -34,8 +34,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FoldersTest do
         assert url =~ "files/folder_123/files"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "subfolder_1"}]})
          }}
       end)
@@ -53,8 +53,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FoldersTest do
         assert url =~ "files/folder_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "data" => %{"id" => "folder_123", "attributes" => %{"name" => "Test"}}
@@ -77,8 +77,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FoldersTest do
         assert body_map["data"]["attributes"]["name"] == "New Folder"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body: Jason.encode!(%{"data" => %{"id" => "new_folder"}})
          }}
       end)
@@ -104,8 +104,8 @@ defmodule ZohoAPI.Modules.WorkDrive.FoldersTest do
         assert url =~ "files/folder_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 204,
+         %Req.Response{
+           status: 204,
            body: ""
          }}
       end)

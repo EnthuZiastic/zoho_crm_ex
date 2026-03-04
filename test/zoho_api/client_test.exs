@@ -13,7 +13,7 @@ defmodule ZohoAPI.ClientTest do
     test "successful request returns {:ok, data}" do
       ZohoAPI.HTTPClientMock
       |> expect(:request, fn :get, _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 200, body: ~s({"data": [{"id": "123"}]})}}
+        {:ok, %Req.Response{status: 200, body: ~s({"data": [{"id": "123"}]})}}
       end)
 
       request =
@@ -30,7 +30,7 @@ defmodule ZohoAPI.ClientTest do
     test "error response returns {:error, data}" do
       ZohoAPI.HTTPClientMock
       |> expect(:request, fn :get, _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 400, body: ~s({"error": "bad request"})}}
+        {:ok, %Req.Response{status: 400, body: ~s({"error": "bad request"})}}
       end)
 
       request =
@@ -53,9 +53,9 @@ defmodule ZohoAPI.ClientTest do
         current = :counters.get(counter, 1)
 
         if current < 2 do
-          {:ok, %HTTPoison.Response{status_code: 500, body: ~s({"error": "server error"})}}
+          {:ok, %Req.Response{status: 500, body: ~s({"error": "server error"})}}
         else
-          {:ok, %HTTPoison.Response{status_code: 200, body: ~s({"data": []})}}
+          {:ok, %Req.Response{status: 200, body: ~s({"data": []})}}
         end
       end)
 
@@ -76,7 +76,7 @@ defmodule ZohoAPI.ClientTest do
     test "401 without refresh token returns error" do
       ZohoAPI.HTTPClientMock
       |> expect(:request, fn :get, _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 401, body: ~s({"error": "unauthorized"})}}
+        {:ok, %Req.Response{status: 401, body: ~s({"error": "unauthorized"})}}
       end)
 
       request =
@@ -95,14 +95,14 @@ defmodule ZohoAPI.ClientTest do
       ZohoAPI.HTTPClientMock
       |> expect(:request, fn :get, url, _body, _headers, _opts ->
         if String.contains?(url, "Leads") do
-          {:ok, %HTTPoison.Response{status_code: 401, body: ~s({"error": "unauthorized"})}}
+          {:ok, %Req.Response{status: 401, body: ~s({"error": "unauthorized"})}}
         end
       end)
       |> expect(:request, fn :post, url, _body, _headers, _opts ->
         if String.contains?(url, "oauth") do
           {:ok,
-           %HTTPoison.Response{
-             status_code: 200,
+           %Req.Response{
+             status: 200,
              body: ~s({"access_token": "new_token", "expires_in": 3600})
            }}
         end
@@ -113,7 +113,7 @@ defmodule ZohoAPI.ClientTest do
         assert auth_header == {"Authorization", "Zoho-oauthtoken new_token"}
 
         if String.contains?(url, "Leads") do
-          {:ok, %HTTPoison.Response{status_code: 200, body: ~s({"data": [{"id": "123"}]})}}
+          {:ok, %Req.Response{status: 200, body: ~s({"data": [{"id": "123"}]})}}
         end
       end)
 
@@ -135,17 +135,17 @@ defmodule ZohoAPI.ClientTest do
 
       ZohoAPI.HTTPClientMock
       |> expect(:request, fn :get, _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 401, body: ~s({"error": "unauthorized"})}}
+        {:ok, %Req.Response{status: 401, body: ~s({"error": "unauthorized"})}}
       end)
       |> expect(:request, fn :post, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: ~s({"access_token": "new_token", "expires_in": 3600})
          }}
       end)
       |> expect(:request, fn :get, _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 200, body: ~s({"data": []})}}
+        {:ok, %Req.Response{status: 200, body: ~s({"data": []})}}
       end)
 
       request =
@@ -170,10 +170,10 @@ defmodule ZohoAPI.ClientTest do
     test "token refresh failure returns error" do
       ZohoAPI.HTTPClientMock
       |> expect(:request, fn :get, _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 401, body: ~s({"error": "unauthorized"})}}
+        {:ok, %Req.Response{status: 401, body: ~s({"error": "unauthorized"})}}
       end)
       |> expect(:request, fn :post, _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 400, body: ~s({"error": "invalid_grant"})}}
+        {:ok, %Req.Response{status: 400, body: ~s({"error": "invalid_grant"})}}
       end)
 
       request =
@@ -194,7 +194,7 @@ defmodule ZohoAPI.ClientTest do
     test "executes request without rate limiting" do
       ZohoAPI.HTTPClientMock
       |> expect(:request, fn :get, _url, _body, _headers, _opts ->
-        {:ok, %HTTPoison.Response{status_code: 200, body: ~s({"data": []})}}
+        {:ok, %Req.Response{status: 200, body: ~s({"data": []})}}
       end)
 
       request =

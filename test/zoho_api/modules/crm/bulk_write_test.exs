@@ -17,8 +17,8 @@ defmodule ZohoAPI.Modules.CRM.BulkWriteTest do
         assert body == "Last_Name,Email\nSmith,smith@example.com"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "status" => "success",
@@ -49,8 +49,8 @@ defmodule ZohoAPI.Modules.CRM.BulkWriteTest do
         assert body_map["operation"] == "insert"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body:
              Jason.encode!(%{
                "status" => "ADDED",
@@ -91,8 +91,8 @@ defmodule ZohoAPI.Modules.CRM.BulkWriteTest do
         assert url =~ "crm/bulk/v8/write/job_456"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body:
              Jason.encode!(%{
                "status" => "COMPLETED",
