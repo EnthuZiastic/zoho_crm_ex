@@ -23,7 +23,7 @@ mix dialyzer                    # Type checking
 ### Request Flow
 
 ```
-InputRequest -> construct_request() -> Request -> Retry -> RateLimiter -> HTTPoison -> Response
+InputRequest -> construct_request() -> Request -> Retry -> RateLimiter -> Req -> Response
 ```
 
 **Core modules:**
@@ -116,8 +116,8 @@ defmodule MyTest do
   setup :verify_on_exit!
 
   test "example" do
-    expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers ->
-      {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(%{"data" => []})}}
+    expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
+      {:ok, %Req.Response{status: 200, body: Jason.encode!(%{"data" => []})}}
     end)
   end
 end
