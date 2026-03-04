@@ -238,7 +238,7 @@ defmodule ZohoAPI.RequestTest do
 
     test "handles HTTP client errors" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
-        {:error, %HTTPoison.Error{reason: :timeout}}
+        {:error, %{reason: :timeout}}
       end)
 
       result =
@@ -254,8 +254,8 @@ defmodule ZohoAPI.RequestTest do
     test "handles non-2xx status codes as errors" do
       expect(ZohoAPI.HTTPClientMock, :request, fn :get, _url, _body, _headers, _opts ->
         {:ok,
-         %HTTPoison.Response{
-           status_code: 401,
+         %Req.Response{
+           status: 401,
            body: Jason.encode!(%{"code" => "INVALID_TOKEN", "message" => "Token expired"})
          }}
       end)

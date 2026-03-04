@@ -67,7 +67,7 @@ defmodule ZohoAPI.Modules.Bulk.Write do
   especially when uploading files close to the 25 MB limit.
   Consider using longer HTTP timeouts:
 
-      # Default HTTPoison timeout is 5 seconds which may be insufficient for large uploads
+      # Default Req receive timeout may be insufficient for large uploads
       # Configure longer timeouts at the application level
       config :zoho_api, :http_options, recv_timeout: 120_000  # 2 minutes
 

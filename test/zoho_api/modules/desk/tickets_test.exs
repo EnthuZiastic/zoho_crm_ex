@@ -16,8 +16,8 @@ defmodule ZohoAPI.Modules.Desk.TicketsTest do
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "ticket_1"}]})
          }}
       end)
@@ -39,8 +39,8 @@ defmodule ZohoAPI.Modules.Desk.TicketsTest do
         assert {"orgId", "org_123"} in headers
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"id" => "ticket_123", "subject" => "Test"})
          }}
       end)
@@ -65,8 +65,8 @@ defmodule ZohoAPI.Modules.Desk.TicketsTest do
         assert body_map["subject"] == "Help needed"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body: Jason.encode!(%{"id" => "ticket_new", "subject" => "Help needed"})
          }}
       end)
@@ -94,8 +94,8 @@ defmodule ZohoAPI.Modules.Desk.TicketsTest do
         assert body_map["status"] == "Closed"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"id" => "ticket_123", "status" => "Closed"})
          }}
       end)
@@ -117,8 +117,8 @@ defmodule ZohoAPI.Modules.Desk.TicketsTest do
         assert url =~ "tickets/ticket_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 204,
+         %Req.Response{
+           status: 204,
            body: ""
          }}
       end)
@@ -138,8 +138,8 @@ defmodule ZohoAPI.Modules.Desk.TicketsTest do
         assert url =~ "searchStr=help"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "ticket_1"}]})
          }}
       end)

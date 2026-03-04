@@ -386,11 +386,15 @@ defmodule ZohoAPI.Request do
   defp encode_body(nil), do: {:ok, ""}
   defp encode_body(body), do: {:ok, to_string(body)}
 
-  defp handle_raw_response({:ok, %HTTPoison.Response{body: body, status_code: status_code}}) do
+  defp handle_raw_response({:ok, %Req.Response{body: body, status: status_code}}) do
     {:ok, status_code, json_or_value(body)}
   end
 
-  defp handle_raw_response({:error, %HTTPoison.Error{reason: reason}}) do
+  defp handle_raw_response({:error, %{reason: reason}}) do
+    {:error, reason}
+  end
+
+  defp handle_raw_response({:error, reason}) do
     {:error, reason}
   end
 

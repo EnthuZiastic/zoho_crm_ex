@@ -15,8 +15,8 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
         assert {"Authorization", "Zoho-oauthtoken test_token"} in headers
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "123"}]})
          }}
       end)
@@ -37,8 +37,8 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
         assert url =~ "crm/v8/Leads/record_123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "record_123"}]})
          }}
       end)
@@ -61,8 +61,8 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
         assert body_map["data"] == [%{"Last_Name" => "Smith"}]
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 201,
+         %Req.Response{
+           status: 201,
            body:
              Jason.encode!(%{
                "data" => [%{"code" => "SUCCESS", "details" => %{"id" => "new_123"}}]
@@ -89,8 +89,8 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
         assert body_map["duplicate_check_fields"] == ["Email"]
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"code" => "SUCCESS"}]})
          }}
       end)
@@ -112,8 +112,8 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
         assert url =~ "crm/v8/Leads"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"code" => "SUCCESS"}]})
          }}
       end)
@@ -136,8 +136,8 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
         assert url =~ "criteria"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"id" => "found_123"}]})
          }}
       end)
@@ -161,8 +161,8 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
         assert body_map["select_query"] =~ "from Leads"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"Last_Name" => "Test"}]})
          }}
       end)
@@ -184,8 +184,8 @@ defmodule ZohoAPI.Modules.CRM.RecordsTest do
         assert url =~ "ids=123"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"data" => [%{"code" => "SUCCESS"}]})
          }}
       end)

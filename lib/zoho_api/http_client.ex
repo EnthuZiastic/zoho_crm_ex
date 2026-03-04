@@ -7,8 +7,7 @@ defmodule ZohoAPI.HTTPClient do
 
   ## Default Implementation
 
-  By default, HTTPoison is used as the HTTP client. All requests go through
-  the `HTTPoison.request/5` function.
+  By default, `ZohoAPI.ReqClient` (backed by the `Req` library) is used.
 
   ## Testing with Mox
 
@@ -44,8 +43,8 @@ defmodule ZohoAPI.HTTPClient do
             assert url =~ "crm/v8/Leads"
             assert {"Authorization", "Zoho-oauthtoken token123"} in headers
 
-            {:ok, %HTTPoison.Response{
-              status_code: 200,
+            {:ok, %Req.Response{
+              status: 200,
               body: Jason.encode!(%{"data" => [%{"id" => "123"}]})
             }}
           end)
@@ -68,7 +67,7 @@ defmodule ZohoAPI.HTTPClient do
         @impl true
         def request(method, url, body, headers, options) do
           # Your custom implementation
-          # Must return {:ok, %HTTPoison.Response{}} or {:error, %HTTPoison.Error{}}
+          # Must return {:ok, %Req.Response{}} or {:error, exception}
         end
       end
 
@@ -92,31 +91,31 @@ defmodule ZohoAPI.HTTPClient do
 
     - `method` - HTTP method as an atom (:get, :post, :put, :patch, :delete)
     - `url` - The request URL
-    - `body` - The request body (string)
+    - `body` - The request body (string or `{:form, data}` for form-encoded)
     - `headers` - List of header tuples
-    - `options` - HTTPoison options (timeout, recv_timeout, etc.)
+    - `options` - Options: `:timeout` (connection), `:recv_timeout` (receive)
 
   ## Returns
 
-    - `{:ok, %HTTPoison.Response{}}` on success
-    - `{:error, %HTTPoison.Error{}}` on failure
+    - `{:ok, %Req.Response{}}` on success
+    - `{:error, exception}` on failure
   """
   @callback request(
               method :: atom(),
               url :: String.t(),
-              body :: String.t(),
+              body :: String.t() | {:form, list()},
               headers :: list(),
               options :: keyword()
             ) ::
-              {:ok, HTTPoison.Response.t()} | {:error, HTTPoison.Error.t()}
+              {:ok, Req.Response.t()} | {:error, Exception.t()}
 
   @doc """
   Returns the configured HTTP client implementation.
 
-  Defaults to HTTPoison if not configured.
+  Defaults to `ZohoAPI.ReqClient` if not configured.
   """
   @spec impl() :: module()
   def impl do
-    Application.get_env(:zoho_api, :http_client, HTTPoison)
+    Application.get_env(:zoho_api, :http_client, ZohoAPI.ReqClient)
   end
 end

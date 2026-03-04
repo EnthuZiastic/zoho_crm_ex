@@ -32,8 +32,8 @@ defmodule ZohoAPI.ProjectsTest do
         assert url =~ "/restapi/portal/"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"tasks" => [%{"id" => 42, "name" => "Task One"}]})
          }}
       end)
@@ -46,8 +46,8 @@ defmodule ZohoAPI.ProjectsTest do
         assert url =~ "/restapi/portal/"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"tasks" => [%{"id" => "abc", "name" => "Task Two"}]})
          }}
       end)
@@ -60,8 +60,8 @@ defmodule ZohoAPI.ProjectsTest do
         assert url =~ "/restapi/portal/"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"error" => "Something went wrong"})
          }}
       end)
@@ -76,8 +76,8 @@ defmodule ZohoAPI.ProjectsTest do
         assert url =~ "/restapi/portal/"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"tasks" => [%{"id" => 99}]})
          }}
       end)
@@ -91,8 +91,8 @@ defmodule ZohoAPI.ProjectsTest do
         assert url =~ "/restapi/portal/"
 
         {:ok,
-         %HTTPoison.Response{
-           status_code: 200,
+         %Req.Response{
+           status: 200,
            body: Jason.encode!(%{"tasks" => [%{"id" => "xyz"}]})
          }}
       end)
