@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Elixir client library for multiple Zoho APIs (CRM, Desk, WorkDrive, Recruit, Bookings, Projects) with multi-region support, automatic retry, rate limiting, and token caching.
+Elixir client library for multiple Zoho APIs (CRM, Desk, WorkDrive, Recruit, Bookings, Projects, Cliq, Meeting) with multi-region support, automatic retry, rate limiting, and token caching.
 
 ## Development Commands
 
@@ -34,13 +34,18 @@ InputRequest -> construct_request() -> Request -> Retry -> RateLimiter -> HTTPoi
 - `TokenCache` - GenServer for coordinated token refresh (prevents concurrent 401 refresh storms)
 - `Pagination` - Streaming (`stream_all/3`) and eager (`fetch_all/3`) pagination helpers
 
-### Module Pattern
+### Two Client Patterns
 
-Each API module in `lib/zoho_api/modules/` follows this pattern:
+**InputRequest-based** (most modules in `lib/zoho_api/modules/`):
 1. Public functions take `%InputRequest{}` as first parameter
 2. Private `construct_request/1` builds base Request with correct `api_type`
 3. Chain builder methods for path, method, params
 4. Call `Request.send/1` to execute
+
+**TokenCache-based** (`ZohoAPI.Cliq`, `ZohoAPI.Meeting`):
+- High-level clients that fetch tokens automatically via `TokenCache`
+- No `InputRequest` involvement; callers pass only business parameters
+- Credentials and refresh token must be set in config (see Configuration)
 
 ### API Type Routing
 
@@ -57,6 +62,8 @@ Each API module in `lib/zoho_api/modules/` follows this pattern:
 | `"portal"` | `https://projectsapi.zoho.{region}/restapi{path}` |
 | `"bulk"` | `https://www.zohoapis.{region}/crm/bulk/v8/{path}` |
 | `"composite"` | `https://www.zohoapis.{region}/crm/v8/__composite_requests` |
+| `"cliq"` | `https://cliq.zoho.{region}/api/v2/{path}` |
+| `"meeting"` | `https://api.zoho.{region}/meeting/v2/{path}` |
 
 Regions: `:in`, `:com`, `:eu`, `:au`, `:jp`, `:uk`, `:ca`, `:sa`
 
@@ -120,6 +127,8 @@ end
 
 - Desk API requires `org_id` via `InputRequest.with_org_id/2`
 - Bulk write: max 25,000 records; bulk read: max 200,000 records
-- Composite API: max 5 requests per call
+- Composite API: max 5 requests per call; use `sub_request_id` and `uri` fields (not `reference_id`/`url` — those are stale names in the README)
+- Composite sequential mode uses `parallel_execution: false` (NOT `concurrent_execution: false`)
 - `ZohoAPI.Modules.Records` is DEPRECATED - use `ZohoAPI.Modules.CRM.Records`
 - Use `Validation.validate_id/1` for user-provided IDs to prevent path injection
+- `ZohoAPI.Cliq` and `ZohoAPI.Meeting` require their own config blocks with `refresh_token` set (unlike InputRequest-based modules where the caller provides the token)
