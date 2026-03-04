@@ -86,8 +86,7 @@ defmodule ZohoAPI.MeetingTest do
       expect(ZohoAPI.HTTPClientMock, :request, fn :delete, url, _body, _headers, _opts ->
         assert url =~ "12345/sessions/key_abc.json"
 
-        {:ok,
-         %Req.Response{status: 200, body: Jason.encode!(%{"message" => "deleted"})}}
+        {:ok, %Req.Response{status: 200, body: Jason.encode!(%{"message" => "deleted"})}}
       end)
 
       assert :ok = Meeting.delete_session("12345", "key_abc")
