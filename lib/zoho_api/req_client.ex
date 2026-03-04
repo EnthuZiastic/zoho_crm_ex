@@ -14,6 +14,9 @@ defmodule ZohoAPI.ReqClient do
     connection_timeout = Keyword.get(options, :timeout, 30_000)
     receive_timeout = Keyword.get(options, :recv_timeout, connection_timeout)
 
+    # Manually encode form data so we can pass it as a raw binary body.
+    # The caller (Request module) already sets "content-type: application/x-www-form-urlencoded",
+    # so we just need the body to be an encoded string rather than using Req's native form option.
     actual_body =
       case body do
         {:form, data} -> URI.encode_query(data)
