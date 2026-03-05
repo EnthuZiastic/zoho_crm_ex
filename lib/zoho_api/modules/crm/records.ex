@@ -147,6 +147,16 @@ defmodule ZohoAPI.Modules.CRM.Records do
           request
       end
 
+    updated_request =
+      case Keyword.get(opts, :trigger) do
+        triggers when is_list(triggers) ->
+          body = Map.merge(updated_request.body, %{"trigger" => triggers})
+          Request.with_body(updated_request, body)
+
+        _ ->
+          updated_request
+      end
+
     updated_request
     |> Request.with_method(:post)
     |> Request.with_path("#{r.module_api_name}/upsert")
@@ -160,9 +170,21 @@ defmodule ZohoAPI.Modules.CRM.Records do
 
     - `input` - InputRequest with `module_api_name` and `body` (records with IDs)
   """
-  @spec update_records(InputRequest.t()) :: {:ok, map()} | {:error, any()}
-  def update_records(%InputRequest{} = r) do
-    construct_request(r)
+  @spec update_records(InputRequest.t(), keyword()) :: {:ok, map()} | {:error, any()}
+  def update_records(%InputRequest{} = r, opts \\ []) do
+    request = construct_request(r)
+
+    updated_request =
+      case Keyword.get(opts, :trigger) do
+        triggers when is_list(triggers) ->
+          body = Map.merge(request.body, %{"trigger" => triggers})
+          Request.with_body(request, body)
+
+        _ ->
+          request
+      end
+
+    updated_request
     |> Request.with_method(:put)
     |> Request.with_path(r.module_api_name)
     |> Request.send()
