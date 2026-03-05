@@ -60,12 +60,12 @@ defmodule ZohoAPI.CRM do
     end
   end
 
-  @spec update_records(String.t(), list(map())) :: {:ok, map()} | {:error, any()}
-  def update_records(module_name, records) do
+  @spec update_records(String.t(), list(map()), keyword()) :: {:ok, map()} | {:error, any()}
+  def update_records(module_name, records, opts \\ []) do
     with {:ok, token} <- TokenCache.get_or_refresh(:crm) do
       token
       |> InputRequest.new(module_name, %{}, records)
-      |> Records.update_records()
+      |> Records.update_records(opts)
     end
   end
 
