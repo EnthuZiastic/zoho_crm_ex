@@ -67,7 +67,7 @@ defmodule ZohoAPI.Request do
           method: atom() | nil,
           api_type: String.t(),
           params: map(),
-          body: map() | String.t(),
+          body: map() | String.t() | {:form, list()},
           headers: map(),
           base_url: String.t(),
           version: String.t(),
@@ -195,7 +195,7 @@ defmodule ZohoAPI.Request do
   @doc """
   Sets the request body.
   """
-  @spec with_body(t(), map() | String.t()) :: t()
+  @spec with_body(t(), map() | String.t() | {:form, list()}) :: t()
   def with_body(%__MODULE__{} = r, body) do
     %{r | body: body}
   end

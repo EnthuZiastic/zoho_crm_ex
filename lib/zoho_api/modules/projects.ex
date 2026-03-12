@@ -8,6 +8,8 @@ defmodule ZohoAPI.Modules.Projects do
 
   @api_type "portal"
 
+  @form_content_type %{"Content-Type" => "application/x-www-form-urlencoded"}
+
   @type portal_id() :: String.t()
   @type project_id() :: String.t()
   @type task_id() :: String.t()
@@ -43,7 +45,8 @@ defmodule ZohoAPI.Modules.Projects do
     construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:post)
-    |> Request.with_body(r.body)
+    |> Request.with_body({:form, Map.to_list(r.body)})
+    |> Request.set_headers(@form_content_type)
     |> Request.send()
   end
 
@@ -55,7 +58,8 @@ defmodule ZohoAPI.Modules.Projects do
     construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:post)
-    |> Request.with_body(r.body)
+    |> Request.with_body({:form, Map.to_list(r.body)})
+    |> Request.set_headers(@form_content_type)
     |> Request.send()
   end
 
@@ -79,7 +83,8 @@ defmodule ZohoAPI.Modules.Projects do
     construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:post)
-    |> Request.with_body(r.body)
+    |> Request.with_body({:form, Map.to_list(r.body)})
+    |> Request.set_headers(@form_content_type)
     |> Request.send()
   end
 
@@ -97,7 +102,8 @@ defmodule ZohoAPI.Modules.Projects do
     construct_request(r)
     |> Request.with_path(path)
     |> Request.with_method(:post)
-    |> Request.with_body(r.body)
+    |> Request.with_body({:form, Map.to_list(r.body)})
+    |> Request.set_headers(@form_content_type)
     |> Request.send()
   end
 
