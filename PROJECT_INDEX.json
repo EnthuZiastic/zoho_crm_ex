@@ -1,0 +1,103 @@
+{
+  "generated": "2026-04-03",
+  "project": "zoho_ex",
+  "version": "0.2.0",
+  "elixir": "~> 1.17",
+  "description": "Elixir client library for multiple Zoho APIs with multi-region support, automatic retry, rate limiting, and token caching",
+  "app_module": "ZohoAPI",
+  "supported_apis": ["crm", "desk", "workdrive", "recruit", "bookings", "projects", "cliq", "meeting"],
+  "regions": [":in", ":com", ":eu", ":au", ":jp", ":uk", ":ca", ":sa"],
+
+  "source_files": {
+    "total": 38,
+    "infrastructure": [
+      "lib/zoho_api.ex",
+      "lib/zoho_api/config.ex",
+      "lib/zoho_api/http_client.ex",
+      "lib/zoho_api/req_client.ex",
+      "lib/zoho_api/input_request.ex",
+      "lib/zoho_api/request.ex",
+      "lib/zoho_api/client.ex",
+      "lib/zoho_api/token_cache.ex",
+      "lib/zoho_api/retry.ex",
+      "lib/zoho_api/rate_limiter.ex",
+      "lib/zoho_api/pagination.ex",
+      "lib/zoho_api/regions.ex",
+      "lib/zoho_api/validation.ex"
+    ],
+    "high_level_clients": [
+      "lib/zoho_api/cliq.ex",
+      "lib/zoho_api/meeting.ex",
+      "lib/zoho_api/projects.ex",
+      "lib/zoho_api/bookings.ex",
+      "lib/zoho_api/crm.ex",
+      "lib/zoho_api/recruit.ex"
+    ],
+    "low_level_modules": [
+      "lib/zoho_api/modules/token.ex",
+      "lib/zoho_api/modules/records.ex",
+      "lib/zoho_api/modules/bookings.ex",
+      "lib/zoho_api/modules/projects.ex",
+      "lib/zoho_api/modules/meeting.ex",
+      "lib/zoho_api/modules/crm/records.ex",
+      "lib/zoho_api/modules/crm/bulk_read.ex",
+      "lib/zoho_api/modules/crm/bulk_write.ex",
+      "lib/zoho_api/modules/crm/composite.ex",
+      "lib/zoho_api/modules/desk/tickets.ex",
+      "lib/zoho_api/modules/recruit/records.ex",
+      "lib/zoho_api/modules/workdrive/files.ex",
+      "lib/zoho_api/modules/workdrive/folders.ex",
+      "lib/zoho_api/modules/bulk/read.ex",
+      "lib/zoho_api/modules/bulk/write.ex"
+    ]
+  },
+
+  "test_files": {
+    "total": 27,
+    "helper": "test/test_helper.exs",
+    "mock": "ZohoAPI.HTTPClientMock",
+    "mock_behaviour": "ZohoAPI.HTTPClient"
+  },
+
+  "dependencies": {
+    "runtime": {
+      "req": "~> 0.5",
+      "jason": "~> 1.4"
+    },
+    "dev_test": {
+      "credo": "~> 1.7.15",
+      "dialyxir": "~> 1.4",
+      "mox": "~> 1.2"
+    },
+    "optional_external": {
+      "rate_limiter": "PostgreSQL-backed rate limiting (not in mix.exs)"
+    }
+  },
+
+  "patterns": {
+    "inputrequest_based": {
+      "description": "Caller supplies access_token on InputRequest; modules build Request internally",
+      "modules": ["CRM.Records", "Desk.Tickets", "WorkDrive.Files", "Recruit.Records", "Projects", "Bookings", "Bulk", "Composite"]
+    },
+    "tokencache_based": {
+      "description": "Caller passes only business params; module fetches token from TokenCache using app config",
+      "modules": ["ZohoAPI.Cliq", "ZohoAPI.Meeting"]
+    }
+  },
+
+  "key_constraints": [
+    "Desk API requires org_id via InputRequest.with_org_id/2",
+    "Bulk write: max 25,000 records; bulk read: max 200,000 records",
+    "Composite API: max 5 requests per call",
+    "Composite sequential mode uses parallel_execution: false (NOT concurrent_execution: false)",
+    "Composite sub-requests use sub_request_id and url fields (not reference_id or path)",
+    "ZohoAPI.Modules.Records is DEPRECATED - use ZohoAPI.Modules.CRM.Records",
+    "Use Validation.validate_id/1 for user-provided IDs to prevent path injection",
+    "Cliq and Meeting require their own config blocks with refresh_token"
+  ],
+
+  "config_keys": [
+    ":crm", ":desk", ":workdrive", ":recruit", ":bookings", ":projects", ":meeting", ":cliq",
+    ":token_cache", ":http_timeout", ":retry", ":rate_limiter"
+  ]
+}
