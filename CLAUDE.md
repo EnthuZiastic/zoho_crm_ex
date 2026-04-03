@@ -42,10 +42,12 @@ InputRequest -> construct_request() -> Request -> Retry -> RateLimiter -> Req ->
 3. Chain builder methods for path, method, params
 4. Call `Request.send/1` to execute
 
-**TokenCache-based** (`ZohoAPI.Cliq`, `ZohoAPI.Meeting`):
+**TokenCache-based** (`lib/zoho_api/*.ex` top-level modules):
 - High-level clients that fetch tokens automatically via `TokenCache`
 - No `InputRequest` involvement; callers pass only business parameters
 - Credentials and refresh token must be set in config (see Configuration)
+- Applies to: `ZohoAPI.Bookings`, `ZohoAPI.Projects`, `ZohoAPI.Cliq`, `ZohoAPI.Meeting`, `ZohoAPI.CRM` (+ submodules in `lib/zoho_api/crm/`)
+- CRM is the only service with *both* a TokenCache-based client (`ZohoAPI.CRM.*`) *and* InputRequest-based modules (`ZohoAPI.Modules.CRM.*`) — the two coexist and serve different use cases; this is intentional, not a leftover migration
 
 ### API Type Routing
 
@@ -131,4 +133,4 @@ end
 - Composite sequential mode uses `parallel_execution: false` (NOT `concurrent_execution: false`)
 - `ZohoAPI.Modules.Records` is DEPRECATED - use `ZohoAPI.Modules.CRM.Records`
 - Use `Validation.validate_id/1` for user-provided IDs to prevent path injection
-- `ZohoAPI.Cliq` and `ZohoAPI.Meeting` require their own config blocks with `refresh_token` set (unlike InputRequest-based modules where the caller provides the token)
+- All TokenCache-based modules (`ZohoAPI.Bookings`, `ZohoAPI.Projects`, `ZohoAPI.Cliq`, `ZohoAPI.Meeting`, `ZohoAPI.CRM.*`) require their own config blocks with `refresh_token` set (unlike InputRequest-based modules where the caller provides the token)
